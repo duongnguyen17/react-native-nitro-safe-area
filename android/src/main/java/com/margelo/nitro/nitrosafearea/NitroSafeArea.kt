@@ -13,7 +13,7 @@ import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 @DoNotStrip
-class NitroSafeArea : HybridNitroSafeAreaSpec() {
+class HybridNitroSafeArea : HybridNitroSafeAreaSpec() {
   private val listeners = ConcurrentHashMap<String, (SafeAreaMetrics) -> Unit>()
   private var layoutListener: ViewTreeObserver.OnGlobalLayoutListener? = null
   private var attachedDecorView: View? = null

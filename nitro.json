@@ -11,11 +11,11 @@
     "NitroSafeArea": {
       "ios": {
         "language": "swift",
-        "implementationClassName": "NitroSafeArea"
+        "implementationClassName": "HybridNitroSafeArea"
       },
       "android": {
         "language": "kotlin",
-        "implementationClassName": "NitroSafeArea"
+        "implementationClassName": "HybridNitroSafeArea"
       }
     }
   },

@@ -1,7 +1,7 @@
 import UIKit
 import NitroModules
 
-public class NitroSafeArea: HybridNitroSafeAreaSpec {
+public class HybridNitroSafeArea: HybridNitroSafeAreaSpec {
   private var listeners: [UUID: (SafeAreaMetrics) -> Void] = [:]
   private var observers: [NSObjectProtocol] = []
   private var kvoTokens: [NSKeyValueObservation] = []
@@ -111,7 +111,7 @@ public class NitroSafeArea: HybridNitroSafeAreaSpec {
       } else {
         // iPad: iPadOS 18+ Sidebar or Floating Top Capsule
         if #available(iOS 18.0, *) {
-          if tabVC.mode == .tabSidebar && tabVC.sidebar.isPresented {
+          if tabVC.mode == .tabSidebar && !tabVC.sidebar.isHidden {
             // iPad Leftside Sidebar mode
             mode = .ipadLeftSidebar
             if let viewInsets = topVC?.view.safeAreaInsets, viewInsets.left > windowInsets.left {
