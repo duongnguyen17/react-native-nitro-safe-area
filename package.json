@@ -1,12 +1,12 @@
 {
-  "name": "react-native-nitro-safe-area",
+  "name": "@2security/nitro-safe-area",
   "version": "0.1.0",
   "description": "⚡ Zero-latency synchronous Safe Area & Native Tab/Sidebar insets for React Native via Nitro Modules",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",
   "exports": {
     ".": {
-      "react-native-nitro-safe-area-source": "./src/index.tsx",
+      "@2security/nitro-safe-area-source": "./src/index.tsx",
       "types": "./lib/typescript/src/index.d.ts",
       "default": "./lib/module/index.js"
     },
@@ -34,7 +34,7 @@
     "!**/.*"
   ],
   "scripts": {
-    "example": "yarn workspace react-native-nitro-safe-area-example",
+    "example": "yarn workspace @2security/nitro-safe-area-example",
     "clean": "del-cli android/build example/android/build example/android/app/build example/ios/build lib",
     "prepare": "bob build",
     "nitrogen": "nitrogen",
@@ -43,8 +43,16 @@
   },
   "keywords": [
     "react-native",
+    "safe-area",
+    "insets",
+    "tabbar",
+    "sidebar",
+    "ipados18",
+    "nitro-modules",
     "ios",
-    "android"
+    "android",
+    "zero-latency",
+    "2security"
   ],
   "repository": {
     "type": "git",
@@ -57,6 +65,7 @@
   },
   "homepage": "https://github.com/duongnguyen17/react-native-nitro-safe-area#readme",
   "publishConfig": {
+    "access": "public",
     "registry": "https://registry.npmjs.org/"
   },
   "devDependencies": {

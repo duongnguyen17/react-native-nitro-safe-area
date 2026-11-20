@@ -7,6 +7,7 @@ import com.facebook.react.module.model.ReactModuleInfoProvider
 
 class NitroSafeAreaPackage : BaseReactPackage() {
   override fun getModule(name: String, reactContext: ReactApplicationContext): NativeModule? {
+    NitroSafeArea.reactContext = reactContext
     return null
   }
 
