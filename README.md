@@ -258,10 +258,10 @@ Native Init ──> C++ JSI Memory Bridge ──> Synchronous Insets (59px at 0m
 ### iPadOS 18 Dual-Mode Navigation Chaos
 
 On iPadOS 18, Apple introduced a radically redesigned `UITabBarController`:
-- **Landscape Mode**: The tab bar automatically transforms into a floating or pinned **Leftside Sidebar** (~320pt wide). Content must be inset from the **left** to avoid being occluded.
-- **Portrait Mode**: The tab bar transforms into a **Top Floating Capsule** (~88pt tall) overlaid directly at the top center of the screen. Content must be inset from the **top** so that title headers, search bars, or banners are not covered by the floating capsule.
+- **Landscape Mode (Tiled Sidebar)**: The tab bar transforms into a **Leftside Sidebar** (~320pt wide). With `.tile` preferred layout enabled, the native content view controller automatically **resizes and shifts** to sit cleanly alongside the sidebar (shrinking horizontally) rather than allowing the sidebar to float over and obscure content.
+- **Portrait Mode (Top Floating Capsule)**: The tab bar transforms into a **Top Floating Capsule** (~88pt tall) overlaid directly at the top center of the screen. Content must be inset from the **top** so that title headers, search bars, or banners are not covered by the floating capsule.
 
-Traditional safe area libraries only measure hardware insets (notch/bezel), completely ignoring `UITabBarController`'s floating capsule and sidebar. `@2security/nitro-safe-area` natively traverses the view hierarchy, identifies `UITabBarController`, and calculates exact `contentInsets` automatically.
+Traditional safe area libraries only measure hardware insets (notch/bezel), completely ignoring `UITabBarController`'s floating capsule and sidebar. `@2security/nitro-safe-area` natively traverses the view hierarchy, identifies `UITabBarController`, enforces `.tile` layout, and calculates exact `contentInsets` automatically.
 
 ### Feature Comparison
 
@@ -271,7 +271,7 @@ Traditional safe area libraries only measure hardware insets (notch/bezel), comp
 | **Layout Shift / Flicker** | ⚠️ Noticeable 1-frame jump | ⚡ **Zero Layout Shift** |
 | **Bridge Overhead** | Event bridge serialization | 🚀 **Pure C++ / Swift / Kotlin Hybrid Object** |
 | **Native Bottom Tab Awareness** | Manual offset calculation | ✅ **Automatic Native TabBar Detection** |
-| **iPadOS 18 Sidebar Mode** | ❌ Raw insets only | ✅ **Automatic Left Sidebar Width Insets (~320pt)** |
+| **iPadOS 18 Sidebar Mode** | ❌ Raw insets only (Sidebar overlays content) | ✅ **Tiled Sidebar (Content resizes & shifts cleanly)** |
 | **iPadOS 18 Top Capsule** | ❌ Overlays content headers | ✅ **Automatic Top Capsule Padding (~88pt)** |
 | **Uniwind / Tailwind CSS Ready** | Needs custom async wrappers | ✅ **Synchronous ScopedVariables Integration** |
 | **Dynamic Orientation Tracking** | Window resize events | ✅ **Native KVO & Hardware Event Listeners** |

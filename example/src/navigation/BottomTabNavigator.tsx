@@ -44,12 +44,9 @@ export const BottomTabNavigator = () => {
       screenOptions={{
         headerShown: false,
         tabBarLabelVisibilityMode: 'labeled',
-        tabBarActiveTintColor: '#38bdf8',
-        tabBarInactiveTintColor: '#94a3b8',
-        tabBarStyle: {
-          backgroundColor: '#0f172a',
-        },
-        tabBarControllerMode: isSidebar ? 'tabSidebar' : 'tabBar',
+        tabBarActiveTintColor: '#0284c7',
+        tabBarInactiveTintColor: '#64748b',
+        tabBarControllerMode: 'tabSidebar',
       }}
     >
       <Tabs.Screen
