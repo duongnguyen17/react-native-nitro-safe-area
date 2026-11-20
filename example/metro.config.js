@@ -1,6 +1,7 @@
 const path = require('path');
 const { getDefaultConfig } = require('@react-native/metro-config');
 const { withMetroConfig } = require('react-native-monorepo-config');
+const { withUniwindConfig } = require('uniwind/metro');
 
 const root = path.resolve(__dirname, '..');
 
@@ -13,7 +14,10 @@ const root = path.resolve(__dirname, '..');
 const config = withMetroConfig(getDefaultConfig(__dirname), {
   root,
   dirname: __dirname,
-  conditions: ['react-native-nitro-safe-area-source'],
+  conditions: ['@2security/nitro-safe-area-source'],
 });
 
-module.exports = config;
+module.exports = withUniwindConfig(config, {
+  cssEntryFile: './src/global.css',
+  dtsFile: './src/uniwind-types.d.ts',
+});
