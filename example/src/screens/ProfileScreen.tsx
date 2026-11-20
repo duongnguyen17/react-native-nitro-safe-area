@@ -1,31 +1,27 @@
 import { View, Text, ScrollView } from 'react-native';
+import Animated, { LinearTransition } from 'react-native-reanimated';
 import { useSafeAreaMetrics, getSafeArea } from '@2security/nitro-safe-area';
+
+const transition = LinearTransition.duration(350);
 
 export const ProfileScreen = () => {
   const metrics = useSafeAreaMetrics();
   const initial = getSafeArea();
 
   return (
-    <View
-      style={{
-        flex: 1,
-        backgroundColor: '#ffffff',
-        paddingBottom: metrics.contentInsets.bottom,
-        paddingLeft: metrics.contentInsets.left,
-        paddingRight: metrics.contentInsets.right,
-      }}
-    >
+    <View style={{ flex: 1, backgroundColor: '#ffffff' }}>
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
           paddingTop: metrics.contentInsets.top + 8,
-          paddingHorizontal: 20,
-          paddingBottom: 40,
+          paddingBottom: metrics.contentInsets.bottom + 20,
+          paddingLeft: metrics.contentInsets.left + 20,
+          paddingRight: metrics.contentInsets.right + 20,
         }}
         showsVerticalScrollIndicator={false}
       >
         {/* Profile Header */}
-        <View style={{ alignItems: 'center', marginVertical: 24 }}>
+        <Animated.View layout={transition} style={{ alignItems: 'center', marginVertical: 24 }}>
           <View
             style={{
               width: 80,
@@ -47,10 +43,11 @@ export const ProfileScreen = () => {
           <Text style={{ color: '#64748b', fontSize: 13, marginTop: 2 }}>
             2Security • Travel Pro Member
           </Text>
-        </View>
+        </Animated.View>
 
         {/* Detailed Metrics Comparator Card */}
-        <View
+        <Animated.View
+          layout={transition}
           style={{
             backgroundColor: '#f8fafc',
             borderRadius: 18,
@@ -90,10 +87,11 @@ export const ProfileScreen = () => {
               Sidebar Width: <Text style={{ fontWeight: '700', color: '#0f172a' }}>{metrics.sidebarWidth.toFixed(1)}pt</Text>
             </Text>
           </View>
-        </View>
+        </Animated.View>
 
         {/* Navigation Mode Explanation Card */}
-        <View
+        <Animated.View
+          layout={transition}
           style={{
             backgroundColor: '#eff6ff',
             borderRadius: 18,
@@ -103,14 +101,13 @@ export const ProfileScreen = () => {
           }}
         >
           <Text style={{ color: '#1e40af', fontWeight: '800', fontSize: 13, marginBottom: 6 }}>
-            💡 iPadOS 18 Tiled Sidebar Architecture
+            💡 iPadOS 18 Adaptive Navigation Architecture
           </Text>
           <Text style={{ color: '#1e3a8a', fontSize: 12, lineHeight: 18 }}>
-            Khi ở chế độ iPad nằm ngang với Leftside Sidebar, UITabBarController được cấu hình <Text style={{ fontWeight: '700' }}>sidebar.preferredLayout = .tile</Text>.
-            Điều này làm view controller tự động <Text style={{ fontWeight: '700' }}>co lại (shrink)</Text> sang cạnh phải của Sidebar thay vì bị Sidebar đè lên.
-            Content Inset Left chỉ cần giữ ở mức 0px.
+            Khi ở chế độ Leftside Sidebar, <Text style={{ fontWeight: '700' }}>contentInsets.left</Text> trả về 320pt để padding đẩy nội dung ra ngoài vùng sidebar bằng <Text style={{ fontWeight: '700' }}>pl-safe / px-safe</Text>.
+            Khi thu gọn sang Floating Top Capsule, view tự động tràn 100% full-screen và <Text style={{ fontWeight: '700' }}>LinearTransition</Text> làm chuyển động co giãn cực kỳ mượt mà.
           </Text>
-        </View>
+        </Animated.View>
       </ScrollView>
     </View>
   );

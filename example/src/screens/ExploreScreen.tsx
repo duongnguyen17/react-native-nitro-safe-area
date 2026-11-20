@@ -1,5 +1,8 @@
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import Animated, { LinearTransition } from 'react-native-reanimated';
 import { useSafeAreaMetrics } from '@2security/nitro-safe-area';
+
+const transition = LinearTransition.duration(350);
 
 export const ExploreScreen = () => {
   const metrics = useSafeAreaMetrics();
@@ -30,7 +33,8 @@ export const ExploreScreen = () => {
         showsVerticalScrollIndicator={false}
       >
         {/* Live Nitro Safe Area Inspector Card */}
-        <View
+        <Animated.View
+          layout={transition}
           style={{
             backgroundColor: '#f1f5f9',
             borderRadius: 16,
@@ -114,10 +118,10 @@ export const ExploreScreen = () => {
               </Text>
             </View>
           </View>
-        </View>
+        </Animated.View>
 
         {/* Travelogi Branding Header */}
-        <View style={{ marginBottom: 20 }}>
+        <Animated.View layout={transition} style={{ marginBottom: 20 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
             <View
               style={{
@@ -150,10 +154,11 @@ export const ExploreScreen = () => {
           <Text style={{ color: '#2563eb', fontSize: 24, fontWeight: '900' }}>
             logi nàooo...
           </Text>
-        </View>
+        </Animated.View>
 
         {/* AI Travel Agent Banner */}
-        <View
+        <Animated.View
+          layout={transition}
           style={{
             backgroundColor: '#2563eb',
             borderRadius: 18,
@@ -186,153 +191,165 @@ export const ExploreScreen = () => {
           <Text style={{ color: '#dbeafe', fontSize: 12, lineHeight: 17 }}>
             Xây dựng chuyến đi hoàn hảo với các gợi ý địa điểm hấp dẫn.
           </Text>
-        </View>
+        </Animated.View>
 
         {/* 4 Service Cards Grid */}
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
+        <Animated.View layout={transition} style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
           {[
             { icon: '✈️', title: 'Máy bay', desc: 'Tìm chuyến bay và theo dõi biểu đồ g...' },
             { icon: '🚆', title: 'Tàu hoả', desc: 'Tìm vé tàu hoả và theo dõi biểu đồ g...' },
             { icon: '🚌', title: 'Xe khách', desc: 'Tìm chuyến xe khách và so sánh...' },
             { icon: '🏨', title: 'Khách sạn', desc: 'Tìm kiếm và lựa chọn phòng khác...' },
           ].map((item, idx) => (
-            <TouchableOpacity
+            <Animated.View
               key={idx}
-              activeOpacity={0.7}
+              layout={transition}
               style={{
                 flex: 1,
                 minWidth: '45%',
-                backgroundColor: '#ffffff',
-                borderRadius: 16,
-                padding: 14,
-                borderWidth: 1,
-                borderColor: '#e2e8f0',
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: 0.05,
-                shadowRadius: 3,
               }}
             >
-              <Text style={{ fontSize: 24, marginBottom: 8 }}>{item.icon}</Text>
-              <Text style={{ color: '#0f172a', fontWeight: '700', fontSize: 14, marginBottom: 2 }}>
-                {item.title}
-              </Text>
-              <Text style={{ color: '#64748b', fontSize: 11 }} numberOfLines={1}>
-                {item.desc}
-              </Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                style={{
+                  backgroundColor: '#ffffff',
+                  borderRadius: 16,
+                  padding: 14,
+                  borderWidth: 1,
+                  borderColor: '#e2e8f0',
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.05,
+                  shadowRadius: 3,
+                }}
+              >
+                <Text style={{ fontSize: 24, marginBottom: 8 }}>{item.icon}</Text>
+                <Text style={{ color: '#0f172a', fontWeight: '700', fontSize: 14, marginBottom: 2 }}>
+                  {item.title}
+                </Text>
+                <Text style={{ color: '#64748b', fontSize: 11 }} numberOfLines={1}>
+                  {item.desc}
+                </Text>
+              </TouchableOpacity>
+            </Animated.View>
           ))}
-        </View>
+        </Animated.View>
 
         {/* So Sánh Card */}
-        <TouchableOpacity
-          activeOpacity={0.7}
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            backgroundColor: '#ffffff',
-            borderRadius: 16,
-            padding: 14,
-            marginBottom: 20,
-            borderWidth: 1,
-            borderColor: '#e2e8f0',
-          }}
-        >
-          <View
+        <Animated.View layout={transition}>
+          <TouchableOpacity
+            activeOpacity={0.7}
             style={{
-              width: 32,
-              height: 32,
-              borderRadius: 8,
-              backgroundColor: '#eff6ff',
+              flexDirection: 'row',
               alignItems: 'center',
-              justifyContent: 'center',
-              marginRight: 10,
+              backgroundColor: '#ffffff',
+              borderRadius: 16,
+              padding: 14,
+              marginBottom: 20,
+              borderWidth: 1,
+              borderColor: '#e2e8f0',
             }}
           >
-            <Text style={{ fontSize: 16 }}>⇄</Text>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: '#0f172a', fontWeight: '700', fontSize: 14 }}>
-              So sánh
-            </Text>
-            <Text style={{ color: '#64748b', fontSize: 11 }}>
-              So sánh giá giữa các phương tiện.
-            </Text>
-          </View>
-        </TouchableOpacity>
+            <View
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                backgroundColor: '#eff6ff',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginRight: 10,
+              }}
+            >
+              <Text style={{ fontSize: 16 }}>⇄</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: '#0f172a', fontWeight: '700', fontSize: 14 }}>
+                So sánh
+              </Text>
+              <Text style={{ color: '#64748b', fontSize: 11 }}>
+                So sánh giá giữa các phương tiện.
+              </Text>
+            </View>
+          </TouchableOpacity>
+        </Animated.View>
 
         {/* Hot Deals Section */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-          <Text style={{ color: '#0f172a', fontWeight: '800', fontSize: 16 }}>
-            Hot Deals 🔥
-          </Text>
-          <Text style={{ color: '#2563eb', fontWeight: '600', fontSize: 12 }}>
-            Xem tất cả
-          </Text>
-        </View>
-
-        {/* Hot Deals Cards */}
-        <View style={{ flexDirection: 'row', gap: 10 }}>
-          <View
-            style={{
-              flex: 1,
-              backgroundColor: '#f8fafc',
-              borderRadius: 16,
-              padding: 12,
-              borderWidth: 1,
-              borderColor: '#e2e8f0',
-            }}
-          >
-            <View
-              style={{
-                height: 70,
-                backgroundColor: '#15803d',
-                borderRadius: 10,
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: 8,
-              }}
-            >
-              <Text style={{ fontSize: 28 }}>🌍</Text>
-            </View>
-            <Text style={{ color: '#0f172a', fontWeight: '700', fontSize: 12, marginBottom: 4 }} numberOfLines={2}>
-              Ưu đãi Quốc tế – Giảm đến 30%
+        <Animated.View layout={transition}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <Text style={{ color: '#0f172a', fontWeight: '800', fontSize: 16 }}>
+              Hot Deals 🔥
             </Text>
-            <Text style={{ color: '#d97706', fontSize: 10, fontWeight: '700' }}>
-              AGODA • Chỉ trên app
+            <Text style={{ color: '#2563eb', fontWeight: '600', fontSize: 12 }}>
+              Xem tất cả
             </Text>
           </View>
 
-          <View
-            style={{
-              flex: 1,
-              backgroundColor: '#f8fafc',
-              borderRadius: 16,
-              padding: 12,
-              borderWidth: 1,
-              borderColor: '#e2e8f0',
-            }}
-          >
-            <View
+          {/* Hot Deals Cards */}
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <Animated.View
+              layout={transition}
               style={{
-                height: 70,
-                backgroundColor: '#c2410c',
-                borderRadius: 10,
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: 8,
+                flex: 1,
+                backgroundColor: '#f8fafc',
+                borderRadius: 16,
+                padding: 12,
+                borderWidth: 1,
+                borderColor: '#e2e8f0',
               }}
             >
-              <Text style={{ fontSize: 28 }}>🏯</Text>
-            </View>
-            <Text style={{ color: '#0f172a', fontWeight: '700', fontSize: 12, marginBottom: 4 }} numberOfLines={2}>
-              Các hoạt động toàn cầu - Giảm 10%
-            </Text>
-            <Text style={{ color: '#2563eb', fontSize: 10, fontWeight: '700' }}>
-              AGODA • Đặt tour
-            </Text>
+              <View
+                style={{
+                  height: 70,
+                  backgroundColor: '#15803d',
+                  borderRadius: 10,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: 8,
+                }}
+              >
+                <Text style={{ fontSize: 28 }}>🌍</Text>
+              </View>
+              <Text style={{ color: '#0f172a', fontWeight: '700', fontSize: 12, marginBottom: 4 }} numberOfLines={2}>
+                Ưu đãi Quốc tế – Giảm đến 30%
+              </Text>
+              <Text style={{ color: '#d97706', fontSize: 10, fontWeight: '700' }}>
+                AGODA • Chỉ trên app
+              </Text>
+            </Animated.View>
+
+            <Animated.View
+              layout={transition}
+              style={{
+                flex: 1,
+                backgroundColor: '#f8fafc',
+                borderRadius: 16,
+                padding: 12,
+                borderWidth: 1,
+                borderColor: '#e2e8f0',
+              }}
+            >
+              <View
+                style={{
+                  height: 70,
+                  backgroundColor: '#c2410c',
+                  borderRadius: 10,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: 8,
+                }}
+              >
+                <Text style={{ fontSize: 28 }}>🏯</Text>
+              </View>
+              <Text style={{ color: '#0f172a', fontWeight: '700', fontSize: 12, marginBottom: 4 }} numberOfLines={2}>
+                Các hoạt động toàn cầu - Giảm 10%
+              </Text>
+              <Text style={{ color: '#2563eb', fontSize: 10, fontWeight: '700' }}>
+                AGODA • Đặt tour
+              </Text>
+            </Animated.View>
           </View>
-        </View>
+        </Animated.View>
       </ScrollView>
     </View>
   );

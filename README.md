@@ -173,7 +173,26 @@ export const TravelogiScreen = () => {
 };
 ```
 
-### 4. Native Bottom Tab & iPadOS 18 Adaptive Sidebar
+### 4. Smooth Layout Transitions with Reanimated
+
+When switching between iPad modes (e.g. Leftside Sidebar 320pt ↔ Top Floating Capsule 88pt), wrap your components in `Animated.View` from `react-native-reanimated` with `LinearTransition` to achieve fluid, 60fps layout animations:
+
+```tsx
+import Animated, { LinearTransition } from 'react-native-reanimated';
+
+export const AdaptiveCard = ({ children }: { children: React.ReactNode }) => {
+  return (
+    <Animated.View
+      layout={LinearTransition.duration(350)}
+      className="bg-white rounded-2xl p-4 shadow-sm"
+    >
+      {children}
+    </Animated.View>
+  );
+};
+```
+
+### 5. Native Bottom Tab & iPadOS 18 Adaptive Sidebar
 
 Works out-of-the-box with native tab bar navigators (such as `@react-navigation/bottom-tabs` with native controllers or custom `UITabBarController`):
 
