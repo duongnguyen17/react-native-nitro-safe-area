@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
 import { NitroModules } from 'react-native-nitro-modules';
 import type {
   NitroSafeArea as NitroSafeAreaSpec,
@@ -53,28 +53,106 @@ export function addOnSafeAreaChangedListener(
   return NitroSafeArea.addOnSafeAreaChangedListener(listener);
 }
 
+// =============================================================================
+// High-Performance React Store (useSyncExternalStore)
+// =============================================================================
+
+function areInsetsEqual(a: EdgeInsets, b: EdgeInsets): boolean {
+  return (
+    a.top === b.top &&
+    a.left === b.left &&
+    a.bottom === b.bottom &&
+    a.right === b.right
+  );
+}
+
+let cachedMetrics: SafeAreaMetrics | null = null;
+let cachedContentInsets: EdgeInsets | null = null;
+let cachedWindowInsets: EdgeInsets | null = null;
+const hookListeners = new Set<() => void>();
+let nativeSubscription: (() => void) | null = null;
+
+function getMetricsSnapshot(): SafeAreaMetrics {
+  if (!cachedMetrics) {
+    cachedMetrics = getSafeArea();
+  }
+  return cachedMetrics;
+}
+
+function getContentInsetsSnapshot(): EdgeInsets {
+  const next = getMetricsSnapshot().contentInsets;
+  if (!cachedContentInsets || !areInsetsEqual(cachedContentInsets, next)) {
+    cachedContentInsets = next;
+  }
+  return cachedContentInsets;
+}
+
+function getWindowInsetsSnapshot(): EdgeInsets {
+  const next = getMetricsSnapshot().insets;
+  if (!cachedWindowInsets || !areInsetsEqual(cachedWindowInsets, next)) {
+    cachedWindowInsets = next;
+  }
+  return cachedWindowInsets;
+}
+
+function subscribeToMetrics(onStoreChange: () => void): () => void {
+  hookListeners.add(onStoreChange);
+
+  if (!nativeSubscription) {
+    nativeSubscription = addOnSafeAreaChangedListener((nextMetrics) => {
+      cachedMetrics = nextMetrics;
+      hookListeners.forEach((listener) => listener());
+    });
+  }
+
+  return () => {
+    hookListeners.delete(onStoreChange);
+    if (hookListeners.size === 0 && nativeSubscription) {
+      nativeSubscription();
+      nativeSubscription = null;
+    }
+  };
+}
+
 /**
  * React hook that initializes synchronously with current native metrics on Frame 0,
- * and updates reactively on orientation or navigation mode changes.
+ * and updates reactively on orientation or navigation mode changes without tearing.
  */
 export function useSafeAreaMetrics(): SafeAreaMetrics {
-  const [metrics, setMetrics] = useState<SafeAreaMetrics>(() => getSafeArea());
-
-  useEffect(() => {
-    return addOnSafeAreaChangedListener((nextMetrics) => {
-      setMetrics(nextMetrics);
-    });
-  }, []);
-
-  return metrics;
+  return useSyncExternalStore(
+    subscribeToMetrics,
+    getMetricsSnapshot,
+    getMetricsSnapshot
+  );
 }
 
 /**
  * React hook that returns content insets (accounting for bottom tab bar, iPad sidebar, or floating capsule).
+ * Memoized snapshot prevents unnecessary re-renders when content insets have not changed.
  */
 export function useContentInsets(): EdgeInsets {
-  return useSafeAreaMetrics().contentInsets;
+  return useSyncExternalStore(
+    subscribeToMetrics,
+    getContentInsetsSnapshot,
+    getContentInsetsSnapshot
+  );
 }
+
+/**
+ * React hook that returns physical window insets.
+ * Memoized snapshot prevents unnecessary re-renders when physical insets have not changed.
+ */
+export function useWindowInsets(): EdgeInsets {
+  return useSyncExternalStore(
+    subscribeToMetrics,
+    getWindowInsetsSnapshot,
+    getWindowInsetsSnapshot
+  );
+}
+
+// =============================================================================
+// Uniwind Tailwind v4 Integration
+// =============================================================================
 
 /**
  * Minimal Uniwind interface for safe area synchronization.
@@ -106,13 +184,17 @@ export function syncWithUniwind(
   // Frame 0 synchronous update — zero flash / zero layout shift!
   const initial = getInsets();
   uniwind.updateInsets(initial);
+  let lastInsets = initial;
 
   // Reactive listener for native changes (rotation, iPad sidebar toggle, etc.)
   return addOnSafeAreaChangedListener((metrics) => {
     const next = options?.useWindowInsets
       ? metrics.insets
       : metrics.contentInsets;
-    uniwind.updateInsets(next);
+    if (!areInsetsEqual(lastInsets, next)) {
+      lastInsets = next;
+      uniwind.updateInsets(next);
+    }
   });
 }
 
@@ -129,11 +211,4 @@ export function useUniwindSafeArea(
       useWindowInsets: shouldSyncWindowInsets,
     });
   }, [uniwind, shouldSyncWindowInsets]);
-}
-
-/**
- * React hook that returns physical window insets.
- */
-export function useWindowInsets(): EdgeInsets {
-  return useSafeAreaMetrics().insets;
 }

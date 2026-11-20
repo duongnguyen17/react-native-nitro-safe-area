@@ -15,6 +15,7 @@ import java.util.concurrent.ConcurrentHashMap
 @DoNotStrip
 class HybridNitroSafeArea : HybridNitroSafeAreaSpec() {
   private val listeners = ConcurrentHashMap<String, (SafeAreaMetrics) -> Unit>()
+  private var lastNotifiedMetrics: SafeAreaMetrics? = null
   private var layoutListener: ViewTreeObserver.OnGlobalLayoutListener? = null
   private var attachedDecorView: View? = null
 
@@ -100,17 +101,40 @@ class HybridNitroSafeArea : HybridNitroSafeAreaSpec() {
     }
 
     activity.runOnUiThread {
+      // Clean up previous listener if attached to a different view
+      attachedDecorView?.let { oldView ->
+        layoutListener?.let { oldListener ->
+          if (oldView.viewTreeObserver.isAlive) {
+            oldView.viewTreeObserver.removeOnGlobalLayoutListener(oldListener)
+          }
+        }
+      }
+
       attachedDecorView = decorView
       layoutListener = ViewTreeObserver.OnGlobalLayoutListener {
         notifyListeners()
       }
       decorView.viewTreeObserver.addOnGlobalLayoutListener(layoutListener)
+
+      // Also attach OnApplyWindowInsetsListener for direct insets updates
+      ViewCompat.setOnApplyWindowInsetsListener(decorView) { _, insets ->
+        notifyListeners()
+        insets
+      }
     }
   }
 
   private fun notifyListeners() {
     if (listeners.isEmpty()) return
     val metrics = calculateMetrics()
+
+    synchronized(this) {
+      if (lastNotifiedMetrics == metrics) {
+        return
+      }
+      lastNotifiedMetrics = metrics
+    }
+
     for (listener in listeners.values) {
       listener(metrics)
     }

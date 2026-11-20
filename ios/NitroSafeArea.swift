@@ -4,6 +4,7 @@ import NitroModules
 public class HybridNitroSafeArea: HybridNitroSafeAreaSpec {
   private let lock = NSLock()
   private var listeners: [UUID: (SafeAreaMetrics) -> Void] = [:]
+  private var lastNotifiedMetrics: SafeAreaMetrics?
   private var observers: [NSObjectProtocol] = []
   private var windowKvoTokens: [NSKeyValueObservation] = []
   private var tabBarKvoTokens: [NSKeyValueObservation] = []
@@ -28,6 +29,10 @@ public class HybridNitroSafeArea: HybridNitroSafeAreaSpec {
     tabBarKvoTokens.removeAll()
     sidebarKvoTokens.forEach { $0.invalidate() }
     sidebarKvoTokens.removeAll()
+    lock.lock()
+    listeners.removeAll()
+    lastNotifiedMetrics = nil
+    lock.unlock()
   }
 
   // MARK: - Synchronous JSI API
@@ -304,6 +309,23 @@ public class HybridNitroSafeArea: HybridNitroSafeAreaSpec {
     tabBarKvoTokens.append(contentsOf: [hiddenToken, frameToken])
   }
 
+  private func metricsAreEqual(_ a: SafeAreaMetrics, _ b: SafeAreaMetrics) -> Bool {
+    return a.insets.top == b.insets.top &&
+           a.insets.left == b.insets.left &&
+           a.insets.bottom == b.insets.bottom &&
+           a.insets.right == b.insets.right &&
+           a.contentInsets.top == b.contentInsets.top &&
+           a.contentInsets.left == b.contentInsets.left &&
+           a.contentInsets.bottom == b.contentInsets.bottom &&
+           a.contentInsets.right == b.contentInsets.right &&
+           a.mode == b.mode &&
+           a.orientation == b.orientation &&
+           a.isTabBarHidden == b.isTabBarHidden &&
+           a.tabBarHeight == b.tabBarHeight &&
+           a.topCapsuleHeight == b.topCapsuleHeight &&
+           a.sidebarWidth == b.sidebarWidth
+  }
+
   private func notifyListeners() {
     lock.lock()
     let currentListeners = Array(listeners.values)
@@ -311,6 +333,15 @@ public class HybridNitroSafeArea: HybridNitroSafeAreaSpec {
 
     guard !currentListeners.isEmpty else { return }
     let metrics = calculateMetrics()
+
+    lock.lock()
+    if let last = lastNotifiedMetrics, metricsAreEqual(last, metrics) {
+      lock.unlock()
+      return
+    }
+    lastNotifiedMetrics = metrics
+    lock.unlock()
+
     for listener in currentListeners {
       listener(metrics)
     }
