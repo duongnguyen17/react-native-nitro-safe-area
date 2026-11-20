@@ -1,0 +1,23 @@
+{
+  "cxxNamespace": ["nitrosafearea"],
+  "ios": {
+    "iosModuleName": "NitroSafeArea"
+  },
+  "android": {
+    "androidNamespace": ["nitrosafearea"],
+    "androidCxxLibName": "nitrosafearea"
+  },
+  "autolinking": {
+    "NitroSafeArea": {
+      "ios": {
+        "language": "swift",
+        "implementationClassName": "NitroSafeArea"
+      },
+      "android": {
+        "language": "kotlin",
+        "implementationClassName": "NitroSafeArea"
+      }
+    }
+  },
+  "ignorePaths": ["node_modules"]
+}
