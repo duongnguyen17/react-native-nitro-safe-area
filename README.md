@@ -104,7 +104,23 @@ export const ScreenHeader = () => {
 
 ### 3. Uniwind / Tailwind CSS Integration
 
-Eliminate layout jump when using Tailwind safe area utility classes like `pt-(--safe-native-top)`:
+Define safe area utilities in your `global.css` (Tailwind v4):
+
+```css
+@utility pt-safe { padding-top: var(--safe-native-top, 0px); }
+@utility pb-safe { padding-bottom: var(--safe-native-bottom, 0px); }
+@utility pl-safe { padding-left: var(--safe-native-left, 0px); }
+@utility pr-safe { padding-right: var(--safe-native-right, 0px); }
+@utility px-safe {
+  padding-left: var(--safe-native-left, 0px);
+  padding-right: var(--safe-native-right, 0px);
+}
+@utility p-safe {
+  padding: var(--safe-native-top, 0px) var(--safe-native-right, 0px) var(--safe-native-bottom, 0px) var(--safe-native-left, 0px);
+}
+```
+
+Provide the native insets via `ScopedVariables`:
 
 ```tsx
 import React, { useState, useEffect } from 'react';
@@ -136,13 +152,22 @@ export const NativeSafeAreaProvider = ({ children }: { children: React.ReactNode
 };
 ```
 
-Then in your screen components, simply write:
+Then in your screen components, use `px-safe` / `pl-safe` and `pt-safe`:
 
 ```tsx
 export const TravelogiScreen = () => {
   return (
-    <View className="flex-1 bg-white pt-(--safe-native-top) pl-(--safe-native-left) pb-(--safe-native-bottom)">
-      <Text className="text-xl font-bold">Discover Vietnam</Text>
+    <View className="flex-1 bg-white">
+      {/* 
+        - Leftside Sidebar: px-safe pushes content out by 320px so the sidebar does not overlay content.
+        - Top Capsule Tab: pt-safe keeps list items below the 88px capsule while content scrolls behind it.
+      */}
+      <ScrollView
+        className="flex-1"
+        contentContainerClassName="pt-safe px-safe pb-safe"
+      >
+        <Text className="text-xl font-bold">Discover Vietnam</Text>
+      </ScrollView>
     </View>
   );
 };
@@ -258,10 +283,10 @@ Native Init ──> C++ JSI Memory Bridge ──> Synchronous Insets (59px at 0m
 ### iPadOS 18 Dual-Mode Navigation Chaos
 
 On iPadOS 18, Apple introduced a radically redesigned `UITabBarController`:
-- **Landscape Mode (Tiled Sidebar)**: The tab bar transforms into a **Leftside Sidebar** (~320pt wide). With `.tile` preferred layout enabled, the native content view controller automatically **resizes and shifts** to sit cleanly alongside the sidebar (shrinking horizontally) rather than allowing the sidebar to float over and obscure content.
-- **Portrait Mode (Top Floating Capsule)**: The tab bar transforms into a **Top Floating Capsule** (~88pt tall) overlaid directly at the top center of the screen. Content must be inset from the **top** so that title headers, search bars, or banners are not covered by the floating capsule.
+- **Landscape Mode (Leftside Sidebar)**: The tab bar transforms into a **Leftside Sidebar** (~320pt wide). The library evaluates `contentInsets.left = 320pt` (`--safe-native-left`), allowing developers to push content safely to the right via `px-safe` or `pl-safe` without the sidebar overlaying or obscuring critical elements.
+- **Portrait & Collapsed Mode (Top Floating Capsule)**: The tab bar transforms into a **Top Floating Capsule** (~88pt tall) overlaid directly at the top center of the screen. The screen renders full-height behind the capsule, while `contentInsets.top = 88pt` allows developers to pad list content (`pt-safe`) safely below the capsule while enabling smooth scrolling underneath.
 
-Traditional safe area libraries only measure hardware insets (notch/bezel), completely ignoring `UITabBarController`'s floating capsule and sidebar. `@2security/nitro-safe-area` natively traverses the view hierarchy, identifies `UITabBarController`, enforces `.tile` layout, and calculates exact `contentInsets` automatically.
+Traditional safe area libraries only measure hardware insets (notch/bezel), completely ignoring `UITabBarController`'s floating capsule and sidebar. `@2security/nitro-safe-area` natively traverses the view hierarchy, identifies `UITabBarController`, and calculates exact semantic `contentInsets` automatically.
 
 ### Feature Comparison
 
@@ -271,7 +296,7 @@ Traditional safe area libraries only measure hardware insets (notch/bezel), comp
 | **Layout Shift / Flicker** | ⚠️ Noticeable 1-frame jump | ⚡ **Zero Layout Shift** |
 | **Bridge Overhead** | Event bridge serialization | 🚀 **Pure C++ / Swift / Kotlin Hybrid Object** |
 | **Native Bottom Tab Awareness** | Manual offset calculation | ✅ **Automatic Native TabBar Detection** |
-| **iPadOS 18 Sidebar Mode** | ❌ Raw insets only (Sidebar overlays content) | ✅ **Tiled Sidebar (Content resizes & shifts cleanly)** |
+| **iPadOS 18 Sidebar Mode** | ❌ Raw insets only (Sidebar overlays content) | ✅ **Automatic Left Inset 320pt (Push content via `pl-safe`/`px-safe`)** |
 | **iPadOS 18 Top Capsule** | ❌ Overlays content headers | ✅ **Automatic Top Capsule Padding (~88pt)** |
 | **Uniwind / Tailwind CSS Ready** | Needs custom async wrappers | ✅ **Synchronous ScopedVariables Integration** |
 | **Dynamic Orientation Tracking** | Window resize events | ✅ **Native KVO & Hardware Event Listeners** |

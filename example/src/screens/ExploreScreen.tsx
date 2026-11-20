@@ -11,26 +11,22 @@ export const ExploreScreen = () => {
       case 'ipad_top_capsule':
         return '💊 iPad (Floating Top Capsule)';
       case 'ipad_left_sidebar':
-        return '📑 iPad (Leftside Sidebar - Tiled)';
+        return '📑 iPad (Leftside Sidebar)';
       default:
         return 'Normal / Hidden';
     }
   };
 
   return (
-    <View
-      style={{
-        flex: 1,
-        backgroundColor: '#ffffff',
-        paddingTop: metrics.contentInsets.top,
-        paddingBottom: metrics.contentInsets.bottom,
-        paddingLeft: metrics.contentInsets.left,
-        paddingRight: metrics.contentInsets.right,
-      }}
-    >
+    <View style={{ flex: 1, backgroundColor: '#ffffff' }}>
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
+        contentContainerStyle={{
+          paddingTop: metrics.contentInsets.top + 8,
+          paddingBottom: metrics.contentInsets.bottom + 20,
+          paddingLeft: metrics.contentInsets.left + 20,
+          paddingRight: metrics.contentInsets.right + 20,
+        }}
         showsVerticalScrollIndicator={false}
       >
         {/* Live Nitro Safe Area Inspector Card */}
@@ -39,7 +35,6 @@ export const ExploreScreen = () => {
             backgroundColor: '#f1f5f9',
             borderRadius: 16,
             padding: 14,
-            marginTop: 12,
             marginBottom: 16,
             borderWidth: 1,
             borderColor: '#e2e8f0',
@@ -107,7 +102,7 @@ export const ExploreScreen = () => {
               </Text>
             </View>
             <View style={{ width: '50%', paddingVertical: 2 }}>
-              <Text style={{ color: '#64748b', fontSize: 11 }}>--safe-native-left:</Text>
+              <Text style={{ color: '#64748b', fontSize: 11 }}>--safe-native-left (pl-safe):</Text>
               <Text style={{ color: '#0f172a', fontWeight: '700', fontSize: 12 }}>
                 {metrics.contentInsets.left.toFixed(1)}px
               </Text>

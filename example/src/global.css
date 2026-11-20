@@ -12,3 +12,36 @@
     --color-text-muted: #94a3b8;
   }
 }
+
+@utility pt-safe {
+  padding-top: var(--safe-native-top, 0px);
+}
+
+@utility pb-safe {
+  padding-bottom: var(--safe-native-bottom, 0px);
+}
+
+@utility pl-safe {
+  padding-left: var(--safe-native-left, 0px);
+}
+
+@utility pr-safe {
+  padding-right: var(--safe-native-right, 0px);
+}
+
+@utility px-safe {
+  padding-left: var(--safe-native-left, 0px);
+  padding-right: var(--safe-native-right, 0px);
+}
+
+@utility py-safe {
+  padding-top: var(--safe-native-top, 0px);
+  padding-bottom: var(--safe-native-bottom, 0px);
+}
+
+@utility p-safe {
+  padding-top: var(--safe-native-top, 0px);
+  padding-bottom: var(--safe-native-bottom, 0px);
+  padding-left: var(--safe-native-left, 0px);
+  padding-right: var(--safe-native-right, 0px);
+}

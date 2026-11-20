@@ -92,8 +92,6 @@ public class HybridNitroSafeArea: HybridNitroSafeAreaSpec {
     var contentLeft = Double(windowInsets.left)
     var contentRight = Double(windowInsets.right)
 
-    var isTileLayout = false
-
     if let tabVC = tabBarController {
       let tabBar = tabVC.tabBar
       isTabBarHidden = tabBar.isHidden
@@ -114,25 +112,16 @@ public class HybridNitroSafeArea: HybridNitroSafeAreaSpec {
       } else {
         // iPad: iPadOS 18+ Sidebar or Floating Top Capsule
         if #available(iOS 18.0, *) {
-          // Set preferred layout to .tile so content shrinks instead of sidebar overlaying
-          if tabVC.sidebar.preferredLayout != .tile {
-            tabVC.sidebar.preferredLayout = .tile
+          if tabVC.sidebar.preferredLayout != .overlap {
+            tabVC.sidebar.preferredLayout = .overlap
           }
 
-          isTileLayout = (tabVC.sidebar.preferredLayout == .tile)
-
           if tabVC.mode == .tabSidebar && !tabVC.sidebar.isHidden {
-            // iPad Leftside Sidebar mode
+            // iPad Leftside Sidebar mode: sidebar overlays left ~320pt,
+            // so contentLeft is set to sidebarWidth to push content out (pl-safe / px-safe)
             mode = .ipadLeftSidebar
             sidebarWidth = 320.0
-            if isTileLayout {
-              // In tile mode, UIKit resizes and shifts the content view controller alongside the sidebar.
-              // Content shrinks horizontally to fit, so contentLeft only needs standard windowInsets.left!
-              contentLeft = Double(windowInsets.left)
-            } else {
-              // In overlap mode, content renders underneath sidebar, so we pad it.
-              contentLeft = sidebarWidth
-            }
+            contentLeft = sidebarWidth
           } else {
             // iPad Floating Top Capsule mode (collapsed sidebar or standard tab mode)
             if !tabBar.isHidden {
@@ -169,7 +158,7 @@ public class HybridNitroSafeArea: HybridNitroSafeAreaSpec {
       if mode == .ipadTopCapsule && Double(viewInsets.top) > contentTop {
         contentTop = Double(viewInsets.top)
       }
-      if mode == .ipadLeftSidebar && !isTileLayout && Double(viewInsets.left) > contentLeft {
+      if mode == .ipadLeftSidebar && Double(viewInsets.left) > contentLeft {
         contentLeft = Double(viewInsets.left)
       }
     }
@@ -247,6 +236,7 @@ public class HybridNitroSafeArea: HybridNitroSafeAreaSpec {
     attachTabBarKVO(tabBar: tabVC.tabBar)
 
     if #available(iOS 18.0, *) {
+      tabVC.sidebar.preferredLayout = .overlap
       let sidebarHiddenToken = tabVC.sidebar.observe(\.isHidden, options: [.new]) { [weak self] _, _ in
         self?.notifyListeners()
       }

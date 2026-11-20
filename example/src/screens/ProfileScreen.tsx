@@ -10,7 +10,6 @@ export const ProfileScreen = () => {
       style={{
         flex: 1,
         backgroundColor: '#ffffff',
-        paddingTop: metrics.contentInsets.top,
         paddingBottom: metrics.contentInsets.bottom,
         paddingLeft: metrics.contentInsets.left,
         paddingRight: metrics.contentInsets.right,
@@ -18,7 +17,11 @@ export const ProfileScreen = () => {
     >
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
+        contentContainerStyle={{
+          paddingTop: metrics.contentInsets.top + 8,
+          paddingHorizontal: 20,
+          paddingBottom: 40,
+        }}
         showsVerticalScrollIndicator={false}
       >
         {/* Profile Header */}
