@@ -9,38 +9,26 @@ export const ProfileScreen = () => {
   const initial = getSafeArea();
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#ffffff' }}>
+    <View className="flex-1 bg-white">
+      {/* 
+        ⚡ Powered by @2security/nitro-safe-area + Uniwind:
+        - contentContainerClassName with pt-safe-offset-2, px-safe-offset-5, pb-safe-offset-5
+        - Automatically synchronizes with Nitro JSI insets on Frame 0!
+      */}
       <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{
-          paddingTop: metrics.contentInsets.top + 8,
-          paddingBottom: metrics.contentInsets.bottom + 20,
-          paddingLeft: metrics.contentInsets.left + 20,
-          paddingRight: metrics.contentInsets.right + 20,
-        }}
+        className="flex-1"
+        contentContainerClassName="pt-safe-offset-2 pb-safe-offset-5 px-safe-offset-5"
         showsVerticalScrollIndicator={false}
       >
         {/* Profile Header */}
-        <Animated.View layout={transition} style={{ alignItems: 'center', marginVertical: 24 }}>
-          <View
-            style={{
-              width: 80,
-              height: 80,
-              borderRadius: 40,
-              backgroundColor: '#e0f2fe',
-              borderWidth: 2,
-              borderColor: '#38bdf8',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: 12,
-            }}
-          >
-            <Text style={{ fontSize: 32 }}>👤</Text>
+        <Animated.View layout={transition} className="items-center my-6">
+          <View className="w-20 h-20 rounded-full bg-sky-100 border-2 border-sky-400 items-center justify-center mb-3">
+            <Text className="text-3xl">👤</Text>
           </View>
-          <Text style={{ color: '#0f172a', fontSize: 20, fontWeight: '800' }}>
+          <Text className="text-slate-900 text-xl font-extrabold">
             Dương Nguyễn
           </Text>
-          <Text style={{ color: '#64748b', fontSize: 13, marginTop: 2 }}>
+          <Text className="text-slate-500 text-xs mt-0.5">
             2Security • Travel Pro Member
           </Text>
         </Animated.View>
@@ -48,43 +36,36 @@ export const ProfileScreen = () => {
         {/* Detailed Metrics Comparator Card */}
         <Animated.View
           layout={transition}
-          style={{
-            backgroundColor: '#f8fafc',
-            borderRadius: 18,
-            padding: 16,
-            marginBottom: 16,
-            borderWidth: 1,
-            borderColor: '#e2e8f0',
-          }}
+          className="bg-slate-50 rounded-2xl p-4 mb-4 border border-slate-200"
         >
-          <Text style={{ color: '#0284c7', fontWeight: '800', fontSize: 14, marginBottom: 12 }}>
+          <Text className="text-sky-600 font-extrabold text-sm mb-3">
             📊 Insets Comparison (Raw OS vs Content Insets)
           </Text>
 
-          <View style={{ backgroundColor: '#ffffff', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0', marginBottom: 10 }}>
-            <Text style={{ color: '#d97706', fontWeight: '700', fontSize: 12, marginBottom: 4 }}>
+          <View className="bg-white p-3 rounded-xl border border-slate-200 mb-2.5">
+            <Text className="text-amber-600 font-bold text-xs mb-1">
               Window Insets (Physical Screen):
             </Text>
-            <Text style={{ color: '#334155', fontFamily: 'Courier', fontSize: 12 }}>
+            <Text className="text-slate-700 font-mono text-xs">
               Top: {metrics.insets.top.toFixed(1)}pt | Bottom: {metrics.insets.bottom.toFixed(1)}pt | Left: {metrics.insets.left.toFixed(1)}pt | Right: {metrics.insets.right.toFixed(1)}pt
             </Text>
           </View>
 
-          <View style={{ backgroundColor: '#ffffff', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0', marginBottom: 10 }}>
-            <Text style={{ color: '#16a34a', fontWeight: '700', fontSize: 12, marginBottom: 4 }}>
+          <View className="bg-white p-3 rounded-xl border border-slate-200 mb-2.5">
+            <Text className="text-emerald-600 font-bold text-xs mb-1">
               Content Insets (Adjusted for Tab/Sidebar/Capsule):
             </Text>
-            <Text style={{ color: '#334155', fontFamily: 'Courier', fontSize: 12 }}>
+            <Text className="text-slate-700 font-mono text-xs">
               Top: {metrics.contentInsets.top.toFixed(1)}pt | Bottom: {metrics.contentInsets.bottom.toFixed(1)}pt | Left: {metrics.contentInsets.left.toFixed(1)}pt | Right: {metrics.contentInsets.right.toFixed(1)}pt
             </Text>
           </View>
 
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingTop: 8, borderTopWidth: 1, borderTopColor: '#e2e8f0' }}>
-            <Text style={{ color: '#64748b', fontSize: 12 }}>
-              Frame 0 Mode: <Text style={{ fontWeight: '700', color: '#0f172a' }}>{initial.mode}</Text>
+          <View className="flex-row justify-between pt-2 border-t border-slate-200">
+            <Text className="text-slate-500 text-xs">
+              Frame 0 Mode: <Text className="font-bold text-slate-900">{initial.mode}</Text>
             </Text>
-            <Text style={{ color: '#64748b', fontSize: 12 }}>
-              Sidebar Width: <Text style={{ fontWeight: '700', color: '#0f172a' }}>{metrics.sidebarWidth.toFixed(1)}pt</Text>
+            <Text className="text-slate-500 text-xs">
+              Sidebar Width: <Text className="font-bold text-slate-900">{metrics.sidebarWidth.toFixed(1)}pt</Text>
             </Text>
           </View>
         </Animated.View>
@@ -92,20 +73,13 @@ export const ProfileScreen = () => {
         {/* Navigation Mode Explanation Card */}
         <Animated.View
           layout={transition}
-          style={{
-            backgroundColor: '#eff6ff',
-            borderRadius: 18,
-            padding: 16,
-            borderWidth: 1,
-            borderColor: '#bfdbfe',
-          }}
+          className="bg-blue-50 rounded-2xl p-4 border border-blue-200"
         >
-          <Text style={{ color: '#1e40af', fontWeight: '800', fontSize: 13, marginBottom: 6 }}>
-            💡 iPadOS 18 Adaptive Navigation Architecture
+          <Text className="text-blue-800 font-extrabold text-xs mb-1.5">
+            💡 iPadOS 18 Adaptive Navigation + Uniwind Architecture
           </Text>
-          <Text style={{ color: '#1e3a8a', fontSize: 12, lineHeight: 18 }}>
-            Khi ở chế độ Leftside Sidebar, <Text style={{ fontWeight: '700' }}>contentInsets.left</Text> trả về 320pt để padding đẩy nội dung ra ngoài vùng sidebar bằng <Text style={{ fontWeight: '700' }}>pl-safe / px-safe</Text>.
-            Khi thu gọn sang Floating Top Capsule, view tự động tràn 100% full-screen và <Text style={{ fontWeight: '700' }}>LinearTransition</Text> làm chuyển động co giãn cực kỳ mượt mà.
+          <Text className="text-blue-900 text-xs leading-4">
+            Khi ở chế độ Leftside Sidebar, <Text className="font-bold">contentInsets.left</Text> trả về 320pt được đồng bộ trực tiếp vào Uniwind qua <Text className="font-bold">syncWithUniwind(Uniwind)</Text>. Lớp <Text className="font-bold">px-safe-offset-5</Text> tự động đẩy toàn bộ nội dung ra khỏi vùng sidebar. Khi thu gọn sang Top Capsule, view tự động tràn viền và <Text className="font-bold">LinearTransition</Text> làm chuyển động co giãn cực kỳ mượt mà!
           </Text>
         </Animated.View>
       </ScrollView>

@@ -102,71 +102,43 @@ export const ScreenHeader = () => {
 };
 ```
 
-### 3. Uniwind / Tailwind CSS Integration
+### 3. Uniwind / Tailwind CSS Integration (Zero-Boilerplate)
 
-Define safe area utilities in your `global.css` (Tailwind v4):
+Normally, Uniwind Free requires `react-native-safe-area-context`'s `SafeAreaListener`, which suffers from asynchronous 1-frame lag and lacks iPadOS 18 adaptive navigation support.
 
-```css
-@utility pt-safe { padding-top: var(--safe-native-top, 0px); }
-@utility pb-safe { padding-bottom: var(--safe-native-bottom, 0px); }
-@utility pl-safe { padding-left: var(--safe-native-left, 0px); }
-@utility pr-safe { padding-right: var(--safe-native-right, 0px); }
-@utility px-safe {
-  padding-left: var(--safe-native-left, 0px);
-  padding-right: var(--safe-native-right, 0px);
-}
-@utility p-safe {
-  padding: var(--safe-native-top, 0px) var(--safe-native-right, 0px) var(--safe-native-bottom, 0px) var(--safe-native-left, 0px);
+With `@2security/nitro-safe-area`, simply call `syncWithUniwind(Uniwind)` at bundle startup:
+
+```tsx
+// App.tsx (or index.js)
+import { Uniwind } from 'uniwind';
+import { syncWithUniwind } from '@2security/nitro-safe-area';
+
+// ⚡ Frame 0 Synchronous JSI Sync — Zero flash, zero layout shift!
+syncWithUniwind(Uniwind);
+
+export default function App() {
+  return <YourAppNavigation />;
 }
 ```
 
-Provide the native insets via `ScopedVariables`:
+Now, all of Uniwind's built-in safe area utilities (`pt-safe`, `pb-safe`, `pl-safe`, `pr-safe`, `px-safe`, `p-safe`, `pt-safe-offset-*`, `px-safe-offset-*`) work out of the box with zero runtime overhead:
 
 ```tsx
-import React, { useState, useEffect } from 'react';
-import { ScopedVariables } from 'uniwind';
-import { getContentInsets, addOnSafeAreaChangedListener } from '@2security/nitro-safe-area';
+import { View, Text, ScrollView } from 'react-native';
 
-export const NativeSafeAreaProvider = ({ children }: { children: React.ReactNode }) => {
-  // Synchronous initialization on Frame 0 — zero layout shift!
-  const [insets, setInsets] = useState(() => getContentInsets());
-
-  useEffect(() => {
-    return addOnSafeAreaChangedListener((metrics) => {
-      setInsets(metrics.contentInsets);
-    });
-  }, []);
-
-  return (
-    <ScopedVariables
-      variables={{
-        '--safe-native-top': insets.top,
-        '--safe-native-bottom': insets.bottom,
-        '--safe-native-left': insets.left,
-        '--safe-native-right': insets.right,
-      }}
-    >
-      {children}
-    </ScopedVariables>
-  );
-};
-```
-
-Then in your screen components, use `px-safe` / `pl-safe` and `pt-safe`:
-
-```tsx
 export const TravelogiScreen = () => {
   return (
     <View className="flex-1 bg-white">
       {/* 
-        - Leftside Sidebar: px-safe pushes content out by 320px so the sidebar does not overlay content.
-        - Top Capsule Tab: pt-safe keeps list items below the 88px capsule while content scrolls behind it.
+        - Leftside Sidebar: px-safe-offset-5 automatically pushes content out past the 320pt sidebar.
+        - Top Capsule Tab: pt-safe-offset-2 pads list items below the 88pt capsule while content scrolls behind it.
       */}
       <ScrollView
         className="flex-1"
-        contentContainerClassName="pt-safe px-safe pb-safe"
+        contentContainerClassName="pt-safe-offset-2 pb-safe-offset-5 px-safe-offset-5"
+        showsVerticalScrollIndicator={false}
       >
-        <Text className="text-xl font-bold">Discover Vietnam</Text>
+        <Text className="text-xl font-bold text-slate-900">Discover Vietnam</Text>
       </ScrollView>
     </View>
   );
@@ -224,6 +196,7 @@ export const AdaptiveNavigation = () => {
 | `getContentInsets()` | `()` | `EdgeInsets` | Synchronously returns semantic insets adjusted for TabBar, iPad sidebar, or top capsule. |
 | `getWindowInsets()` | `()` | `EdgeInsets` | Synchronously returns physical hardware screen window insets. |
 | `addOnSafeAreaChangedListener()` | `(listener: (metrics: SafeAreaMetrics) => void)` | `() => void` | Listens for native rotation, sidebar toggle, or inset changes. Returns unregister function. |
+| `syncWithUniwind()` | `(uniwind: UniwindLike, options?: { useWindowInsets?: boolean })` | `() => void` | Synchronizes insets into Uniwind at Frame 0 and subscribes to native changes. |
 
 ---
 
@@ -234,6 +207,7 @@ export const AdaptiveNavigation = () => {
 | `useSafeAreaMetrics()` | `SafeAreaMetrics` | Initializes synchronously on Frame 0 and subscribes to native changes. |
 | `useContentInsets()` | `EdgeInsets` | Convenience hook returning current content insets. |
 | `useWindowInsets()` | `EdgeInsets` | Convenience hook returning raw hardware window insets. |
+| `useUniwindSafeArea()` | `void` | Automatically registers and synchronizes with Uniwind during component lifecycle. |
 
 ---
 

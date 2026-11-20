@@ -77,6 +77,61 @@ export function useContentInsets(): EdgeInsets {
 }
 
 /**
+ * Minimal Uniwind interface for safe area synchronization.
+ */
+export interface UniwindLike {
+  updateInsets: (insets: EdgeInsets) => void;
+  updateCSSVariables?: (
+    theme: string,
+    variables: Record<string, string | number>
+  ) => void;
+}
+
+/**
+ * Synchronizes @2security/nitro-safe-area with Uniwind at 0ms.
+ * - Immediately updates Uniwind insets synchronously at Frame 0 (zero layout shift).
+ * - Subscribes to native orientation and iPadOS 18 adaptive navigation mode changes
+ *   (Leftside Sidebar ↔ Top Floating Capsule) and automatically propagates them to Uniwind.
+ * - Powers Uniwind's built-in `pt-safe`, `pb-safe`, `pl-safe`, `pr-safe`, `px-safe`, `p-safe`,
+ *   `pt-safe-or-*`, and `pb-safe-offset-*` out of the box with zero boilerplate.
+ *
+ * @param uniwind The Uniwind instance imported from 'uniwind'.
+ * @param options Optional configuration (e.g. sync physical windowInsets instead of contentInsets).
+ * @returns Unsubscribe function to tear down the listener.
+ */
+export function syncWithUniwind(
+  uniwind: UniwindLike,
+  options?: { useWindowInsets?: boolean }
+): () => void {
+  const getInsets = () =>
+    options?.useWindowInsets ? getWindowInsets() : getContentInsets();
+
+  // Frame 0 synchronous update — zero flash / zero layout shift!
+  const initial = getInsets();
+  uniwind.updateInsets(initial);
+
+  // Reactive listener for native changes (rotation, iPad sidebar toggle, etc.)
+  return addOnSafeAreaChangedListener((metrics) => {
+    const next = options?.useWindowInsets
+      ? metrics.insets
+      : metrics.contentInsets;
+    uniwind.updateInsets(next);
+  });
+}
+
+/**
+ * React hook that registers Uniwind synchronization during component lifecycle.
+ */
+export function useUniwindSafeArea(
+  uniwind: UniwindLike,
+  options?: { useWindowInsets?: boolean }
+): void {
+  useEffect(() => {
+    return syncWithUniwind(uniwind, options);
+  }, [uniwind, options?.useWindowInsets]);
+}
+
+/**
  * React hook that returns physical window insets.
  */
 export function useWindowInsets(): EdgeInsets {

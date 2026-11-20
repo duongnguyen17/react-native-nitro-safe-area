@@ -21,99 +21,68 @@ export const ExploreScreen = () => {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#ffffff' }}>
+    <View className="flex-1 bg-white">
+      {/* 
+        ⚡ Powered by @2security/nitro-safe-area + Uniwind:
+        - pt-safe-offset-2: In Top Capsule mode, pads 88px + 8px so list items start below floating bar,
+          while root View extends edge-to-edge behind the blur.
+        - px-safe-offset-5: In Leftside Sidebar mode, pads 320px + 20px so content is smoothly pushed out.
+        - pb-safe-offset-5: Adapts to bottom home bar or iPhone bottom tab.
+      */}
       <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{
-          paddingTop: metrics.contentInsets.top + 8,
-          paddingBottom: metrics.contentInsets.bottom + 20,
-          paddingLeft: metrics.contentInsets.left + 20,
-          paddingRight: metrics.contentInsets.right + 20,
-        }}
+        className="flex-1"
+        contentContainerClassName="pt-safe-offset-2 pb-safe-offset-5 px-safe-offset-5"
         showsVerticalScrollIndicator={false}
       >
         {/* Live Nitro Safe Area Inspector Card */}
         <Animated.View
           layout={transition}
-          style={{
-            backgroundColor: '#f1f5f9',
-            borderRadius: 16,
-            padding: 14,
-            marginBottom: 16,
-            borderWidth: 1,
-            borderColor: '#e2e8f0',
-          }}
+          className="bg-slate-100 rounded-2xl p-3.5 mb-4 border border-slate-200"
         >
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: 8,
-            }}
-          >
-            <Text style={{ color: '#0284c7', fontWeight: '700', fontSize: 13 }}>
-              ⚡ Nitro Safe Area Runtime
+          <View className="flex-row items-center justify-between mb-2">
+            <Text className="text-sky-600 font-bold text-xs">
+              ⚡ Nitro Safe Area + Uniwind Runtime
             </Text>
-            <View
-              style={{
-                backgroundColor: '#dcfce7',
-                paddingHorizontal: 8,
-                paddingVertical: 2,
-                borderRadius: 999,
-                borderWidth: 1,
-                borderColor: '#86efac',
-              }}
-            >
-              <Text style={{ color: '#15803d', fontSize: 10, fontWeight: '700' }}>
+            <View className="bg-green-100 px-2 py-0.5 rounded-full border border-green-300">
+              <Text className="text-green-700 text-[10px] font-bold">
                 0ms Frame 0 Sync
               </Text>
             </View>
           </View>
 
-          <Text style={{ color: '#1e293b', fontWeight: '600', fontSize: 13, marginBottom: 4 }}>
-            Mode: <Text style={{ color: '#0284c7', fontWeight: '700' }}>{getModeLabel()}</Text>
+          <Text className="text-slate-800 font-semibold text-xs mb-1">
+            Mode: <Text className="text-sky-600 font-bold">{getModeLabel()}</Text>
           </Text>
-          <Text style={{ color: '#64748b', fontSize: 12, marginBottom: 8 }}>
+          <Text className="text-slate-500 text-xs mb-2">
             Orientation:{' '}
-            <Text style={{ color: '#0f172a', fontFamily: 'Courier', fontWeight: '700' }}>
+            <Text className="text-slate-900 font-mono font-bold">
               {metrics.orientation.toUpperCase()}
             </Text>
           </Text>
 
           {/* Active Inset Metrics Grid */}
-          <View
-            style={{
-              flexDirection: 'row',
-              flexWrap: 'wrap',
-              backgroundColor: '#ffffff',
-              padding: 10,
-              borderRadius: 12,
-              borderWidth: 1,
-              borderColor: '#cbd5e1',
-            }}
-          >
-            <View style={{ width: '50%', paddingVertical: 2 }}>
-              <Text style={{ color: '#64748b', fontSize: 11 }}>--safe-native-top:</Text>
-              <Text style={{ color: '#0f172a', fontWeight: '700', fontSize: 12 }}>
+          <View className="flex-row flex-wrap bg-white p-2.5 rounded-xl border border-slate-300">
+            <View className="w-1/2 py-0.5">
+              <Text className="text-slate-500 text-[11px]">pt-safe (top):</Text>
+              <Text className="text-slate-900 font-bold text-xs">
                 {metrics.contentInsets.top.toFixed(1)}px
               </Text>
             </View>
-            <View style={{ width: '50%', paddingVertical: 2 }}>
-              <Text style={{ color: '#64748b', fontSize: 11 }}>--safe-native-bottom:</Text>
-              <Text style={{ color: '#0f172a', fontWeight: '700', fontSize: 12 }}>
+            <View className="w-1/2 py-0.5">
+              <Text className="text-slate-500 text-[11px]">pb-safe (bottom):</Text>
+              <Text className="text-slate-900 font-bold text-xs">
                 {metrics.contentInsets.bottom.toFixed(1)}px
               </Text>
             </View>
-            <View style={{ width: '50%', paddingVertical: 2 }}>
-              <Text style={{ color: '#64748b', fontSize: 11 }}>--safe-native-left (pl-safe):</Text>
-              <Text style={{ color: '#0f172a', fontWeight: '700', fontSize: 12 }}>
+            <View className="w-1/2 py-0.5">
+              <Text className="text-slate-500 text-[11px]">pl-safe (left sidebar):</Text>
+              <Text className="text-slate-900 font-bold text-xs">
                 {metrics.contentInsets.left.toFixed(1)}px
               </Text>
             </View>
-            <View style={{ width: '50%', paddingVertical: 2 }}>
-              <Text style={{ color: '#64748b', fontSize: 11 }}>--safe-native-right:</Text>
-              <Text style={{ color: '#0f172a', fontWeight: '700', fontSize: 12 }}>
+            <View className="w-1/2 py-0.5">
+              <Text className="text-slate-500 text-[11px]">pr-safe (right):</Text>
+              <Text className="text-slate-900 font-bold text-xs">
                 {metrics.contentInsets.right.toFixed(1)}px
               </Text>
             </View>
@@ -121,37 +90,19 @@ export const ExploreScreen = () => {
         </Animated.View>
 
         {/* Travelogi Branding Header */}
-        <Animated.View layout={transition} style={{ marginBottom: 20 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
-            <View
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 16,
-                borderWidth: 2.5,
-                borderColor: '#2563eb',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginRight: 8,
-              }}
-            >
-              <View
-                style={{
-                  width: 14,
-                  height: 2.5,
-                  backgroundColor: '#2563eb',
-                  transform: [{ rotate: '45deg' }],
-                }}
-              />
+        <Animated.View layout={transition} className="mb-5">
+          <View className="flex-row items-center mb-1.5">
+            <View className="w-8 h-8 rounded-full border-2 border-blue-600 items-center justify-center mr-2">
+              <View className="w-3.5 h-0.5 bg-blue-600 rotate-45" />
             </View>
-            <Text style={{ color: '#1e3a8a', fontSize: 26, fontWeight: '900', letterSpacing: -0.5 }}>
+            <Text className="text-blue-900 text-2xl font-black tracking-tight">
               Travelogi
             </Text>
           </View>
-          <Text style={{ color: '#0f172a', fontSize: 24, fontWeight: '800' }}>
+          <Text className="text-slate-900 text-2xl font-extrabold">
             Cứ đi đi,
           </Text>
-          <Text style={{ color: '#2563eb', fontSize: 24, fontWeight: '900' }}>
+          <Text className="text-blue-600 text-2xl font-black">
             logi nàooo...
           </Text>
         </Animated.View>
@@ -159,42 +110,23 @@ export const ExploreScreen = () => {
         {/* AI Travel Agent Banner */}
         <Animated.View
           layout={transition}
-          style={{
-            backgroundColor: '#2563eb',
-            borderRadius: 18,
-            padding: 16,
-            marginBottom: 20,
-            shadowColor: '#2563eb',
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.25,
-            shadowRadius: 8,
-          }}
+          className="bg-blue-600 rounded-2xl p-4 mb-5 shadow-lg shadow-blue-500/25"
         >
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-            <View
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: 14,
-                backgroundColor: 'rgba(255,255,255,0.2)',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginRight: 8,
-              }}
-            >
-              <Text style={{ color: '#ffffff', fontSize: 14 }}>🧭</Text>
+          <View className="flex-row items-center mb-1">
+            <View className="w-7 h-7 rounded-full bg-white/20 items-center justify-center mr-2">
+              <Text className="text-white text-sm">🧭</Text>
             </View>
-            <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: '800' }}>
+            <Text className="text-white text-base font-extrabold">
               Travel Agent
             </Text>
           </View>
-          <Text style={{ color: '#dbeafe', fontSize: 12, lineHeight: 17 }}>
+          <Text className="text-blue-100 text-xs leading-4">
             Xây dựng chuyến đi hoàn hảo với các gợi ý địa điểm hấp dẫn.
           </Text>
         </Animated.View>
 
         {/* 4 Service Cards Grid */}
-        <Animated.View layout={transition} style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
+        <Animated.View layout={transition} className="flex-row flex-wrap gap-2.5 mb-3">
           {[
             { icon: '✈️', title: 'Máy bay', desc: 'Tìm chuyến bay và theo dõi biểu đồ g...' },
             { icon: '🚆', title: 'Tàu hoả', desc: 'Tìm vé tàu hoả và theo dõi biểu đồ g...' },
@@ -204,30 +136,17 @@ export const ExploreScreen = () => {
             <Animated.View
               key={idx}
               layout={transition}
-              style={{
-                flex: 1,
-                minWidth: '45%',
-              }}
+              className="flex-1 min-w-[45%]"
             >
               <TouchableOpacity
                 activeOpacity={0.7}
-                style={{
-                  backgroundColor: '#ffffff',
-                  borderRadius: 16,
-                  padding: 14,
-                  borderWidth: 1,
-                  borderColor: '#e2e8f0',
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 1 },
-                  shadowOpacity: 0.05,
-                  shadowRadius: 3,
-                }}
+                className="bg-white rounded-2xl p-3.5 border border-slate-200 shadow-sm"
               >
-                <Text style={{ fontSize: 24, marginBottom: 8 }}>{item.icon}</Text>
-                <Text style={{ color: '#0f172a', fontWeight: '700', fontSize: 14, marginBottom: 2 }}>
+                <Text className="text-2xl mb-2">{item.icon}</Text>
+                <Text className="text-slate-900 font-bold text-sm mb-0.5">
                   {item.title}
                 </Text>
-                <Text style={{ color: '#64748b', fontSize: 11 }} numberOfLines={1}>
+                <Text className="text-slate-500 text-xs" numberOfLines={1}>
                   {item.desc}
                 </Text>
               </TouchableOpacity>
@@ -239,35 +158,16 @@ export const ExploreScreen = () => {
         <Animated.View layout={transition}>
           <TouchableOpacity
             activeOpacity={0.7}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              backgroundColor: '#ffffff',
-              borderRadius: 16,
-              padding: 14,
-              marginBottom: 20,
-              borderWidth: 1,
-              borderColor: '#e2e8f0',
-            }}
+            className="flex-row items-center bg-white rounded-2xl p-3.5 mb-5 border border-slate-200 shadow-sm"
           >
-            <View
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 8,
-                backgroundColor: '#eff6ff',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginRight: 10,
-              }}
-            >
-              <Text style={{ fontSize: 16 }}>⇄</Text>
+            <View className="w-8 h-8 rounded-lg bg-blue-50 items-center justify-center mr-2.5">
+              <Text className="text-base">⇄</Text>
             </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: '#0f172a', fontWeight: '700', fontSize: 14 }}>
+            <View className="flex-1">
+              <Text className="text-slate-900 font-bold text-sm">
                 So sánh
               </Text>
-              <Text style={{ color: '#64748b', fontSize: 11 }}>
+              <Text className="text-slate-500 text-xs">
                 So sánh giá giữa các phương tiện.
               </Text>
             </View>
@@ -276,75 +176,43 @@ export const ExploreScreen = () => {
 
         {/* Hot Deals Section */}
         <Animated.View layout={transition}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <Text style={{ color: '#0f172a', fontWeight: '800', fontSize: 16 }}>
+          <View className="flex-row items-center justify-between mb-3">
+            <Text className="text-slate-900 font-extrabold text-base">
               Hot Deals 🔥
             </Text>
-            <Text style={{ color: '#2563eb', fontWeight: '600', fontSize: 12 }}>
+            <Text className="text-blue-600 font-semibold text-xs">
               Xem tất cả
             </Text>
           </View>
 
           {/* Hot Deals Cards */}
-          <View style={{ flexDirection: 'row', gap: 10 }}>
+          <View className="flex-row gap-2.5">
             <Animated.View
               layout={transition}
-              style={{
-                flex: 1,
-                backgroundColor: '#f8fafc',
-                borderRadius: 16,
-                padding: 12,
-                borderWidth: 1,
-                borderColor: '#e2e8f0',
-              }}
+              className="flex-1 bg-slate-50 rounded-2xl p-3 border border-slate-200"
             >
-              <View
-                style={{
-                  height: 70,
-                  backgroundColor: '#15803d',
-                  borderRadius: 10,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginBottom: 8,
-                }}
-              >
-                <Text style={{ fontSize: 28 }}>🌍</Text>
+              <View className="h-16 bg-green-700 rounded-lg items-center justify-center mb-2">
+                <Text className="text-2xl">🌍</Text>
               </View>
-              <Text style={{ color: '#0f172a', fontWeight: '700', fontSize: 12, marginBottom: 4 }} numberOfLines={2}>
+              <Text className="text-slate-900 font-bold text-xs mb-1" numberOfLines={2}>
                 Ưu đãi Quốc tế – Giảm đến 30%
               </Text>
-              <Text style={{ color: '#d97706', fontSize: 10, fontWeight: '700' }}>
+              <Text className="text-amber-600 text-[10px] font-bold">
                 AGODA • Chỉ trên app
               </Text>
             </Animated.View>
 
             <Animated.View
               layout={transition}
-              style={{
-                flex: 1,
-                backgroundColor: '#f8fafc',
-                borderRadius: 16,
-                padding: 12,
-                borderWidth: 1,
-                borderColor: '#e2e8f0',
-              }}
+              className="flex-1 bg-slate-50 rounded-2xl p-3 border border-slate-200"
             >
-              <View
-                style={{
-                  height: 70,
-                  backgroundColor: '#c2410c',
-                  borderRadius: 10,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginBottom: 8,
-                }}
-              >
-                <Text style={{ fontSize: 28 }}>🏯</Text>
+              <View className="h-16 bg-orange-700 rounded-lg items-center justify-center mb-2">
+                <Text className="text-2xl">🏯</Text>
               </View>
-              <Text style={{ color: '#0f172a', fontWeight: '700', fontSize: 12, marginBottom: 4 }} numberOfLines={2}>
+              <Text className="text-slate-900 font-bold text-xs mb-1" numberOfLines={2}>
                 Các hoạt động toàn cầu - Giảm 10%
               </Text>
-              <Text style={{ color: '#2563eb', fontSize: 10, fontWeight: '700' }}>
+              <Text className="text-blue-600 text-[10px] font-bold">
                 AGODA • Đặt tour
               </Text>
             </Animated.View>

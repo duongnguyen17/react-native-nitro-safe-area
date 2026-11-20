@@ -3,45 +3,13 @@
 
 @layer theme {
   :root {
-    --color-primary: #0284c7;
-    --color-primary-dark: #0369a1;
-    --color-background: #0f172a;
-    --color-card: #1e293b;
-    --color-border: #334155;
-    --color-text: #f8fafc;
-    --color-text-muted: #94a3b8;
+    --color-primary: #2563eb;
+    --color-primary-dark: #1d4ed8;
+    --color-background: #ffffff;
+    --color-card: #ffffff;
+    --color-border: #e2e8f0;
+    --color-text: #0f172a;
+    --color-text-muted: #64748b;
   }
 }
 
-@utility pt-safe {
-  padding-top: var(--safe-native-top, 0px);
-}
-
-@utility pb-safe {
-  padding-bottom: var(--safe-native-bottom, 0px);
-}
-
-@utility pl-safe {
-  padding-left: var(--safe-native-left, 0px);
-}
-
-@utility pr-safe {
-  padding-right: var(--safe-native-right, 0px);
-}
-
-@utility px-safe {
-  padding-left: var(--safe-native-left, 0px);
-  padding-right: var(--safe-native-right, 0px);
-}
-
-@utility py-safe {
-  padding-top: var(--safe-native-top, 0px);
-  padding-bottom: var(--safe-native-bottom, 0px);
-}
-
-@utility p-safe {
-  padding-top: var(--safe-native-top, 0px);
-  padding-bottom: var(--safe-native-bottom, 0px);
-  padding-left: var(--safe-native-left, 0px);
-  padding-right: var(--safe-native-right, 0px);
-}

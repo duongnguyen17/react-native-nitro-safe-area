@@ -4,7 +4,9 @@ import NitroModules
 public class HybridNitroSafeArea: HybridNitroSafeAreaSpec {
   private var listeners: [UUID: (SafeAreaMetrics) -> Void] = [:]
   private var observers: [NSObjectProtocol] = []
-  private var kvoTokens: [NSKeyValueObservation] = []
+  private var windowKvoTokens: [NSKeyValueObservation] = []
+  private var tabBarKvoTokens: [NSKeyValueObservation] = []
+  private var sidebarKvoTokens: [NSKeyValueObservation] = []
   private weak var observedWindow: UIWindow?
   private weak var observedTabBar: UITabBar?
   private weak var observedTabBarController: UITabBarController?
@@ -19,8 +21,12 @@ public class HybridNitroSafeArea: HybridNitroSafeAreaSpec {
   deinit {
     observers.forEach { NotificationCenter.default.removeObserver($0) }
     observers.removeAll()
-    kvoTokens.forEach { $0.invalidate() }
-    kvoTokens.removeAll()
+    windowKvoTokens.forEach { $0.invalidate() }
+    windowKvoTokens.removeAll()
+    tabBarKvoTokens.forEach { $0.invalidate() }
+    tabBarKvoTokens.removeAll()
+    sidebarKvoTokens.forEach { $0.invalidate() }
+    sidebarKvoTokens.removeAll()
   }
 
   // MARK: - Synchronous JSI API
@@ -116,27 +122,26 @@ public class HybridNitroSafeArea: HybridNitroSafeAreaSpec {
             tabVC.sidebar.preferredLayout = .overlap
           }
 
-          if tabVC.mode == .tabSidebar && !tabVC.sidebar.isHidden {
+          if !tabVC.sidebar.isHidden {
             // iPad Leftside Sidebar mode: sidebar overlays left ~320pt,
             // so contentLeft is set to sidebarWidth to push content out (pl-safe / px-safe)
             mode = .ipadLeftSidebar
             sidebarWidth = 320.0
             contentLeft = sidebarWidth
+            contentTop = Double(windowInsets.top)
           } else {
             // iPad Floating Top Capsule mode (collapsed sidebar or standard tab mode)
-            if !tabBar.isHidden {
-              mode = .ipadTopCapsule
-              let tabFrame = tabBar.frame
-              if tabFrame.origin.y < screenBounds.height / 2 && tabFrame.height > 0 {
-                topCapsuleHeight = Double(tabFrame.origin.y + tabFrame.height)
-                contentTop = max(Double(windowInsets.top), topCapsuleHeight)
-              } else if let viewInsets = topVC?.view.safeAreaInsets, viewInsets.top > windowInsets.top {
-                topCapsuleHeight = Double(viewInsets.top)
-                contentTop = topCapsuleHeight
-              } else {
-                topCapsuleHeight = Double(windowInsets.top) + 50.0
-                contentTop = topCapsuleHeight
-              }
+            mode = .ipadTopCapsule
+            let tabFrame = tabBar.frame
+            if tabFrame.origin.y < screenBounds.height / 2 && tabFrame.height > 0 {
+              topCapsuleHeight = Double(tabFrame.origin.y + tabFrame.height)
+              contentTop = max(Double(windowInsets.top), topCapsuleHeight)
+            } else if let viewInsets = topVC?.view.safeAreaInsets, viewInsets.top > windowInsets.top {
+              topCapsuleHeight = Double(viewInsets.top)
+              contentTop = topCapsuleHeight
+            } else {
+              topCapsuleHeight = Double(windowInsets.top) + 64.0
+              contentTop = topCapsuleHeight
             }
           }
         } else {
@@ -219,8 +224,8 @@ public class HybridNitroSafeArea: HybridNitroSafeAreaSpec {
 
   private func attachWindowKVO(window: UIWindow) {
     observedWindow = window
-    kvoTokens.forEach { $0.invalidate() }
-    kvoTokens.removeAll()
+    windowKvoTokens.forEach { $0.invalidate() }
+    windowKvoTokens.removeAll()
 
     let insetsToken = window.observe(\.safeAreaInsets, options: [.new]) { [weak self] _, _ in
       self?.notifyListeners()
@@ -228,31 +233,42 @@ public class HybridNitroSafeArea: HybridNitroSafeAreaSpec {
     let boundsToken = window.observe(\.bounds, options: [.new]) { [weak self] _, _ in
       self?.notifyListeners()
     }
-    kvoTokens.append(contentsOf: [insetsToken, boundsToken])
+    windowKvoTokens.append(contentsOf: [insetsToken, boundsToken])
   }
 
   private func attachTabBarControllerKVO(tabVC: UITabBarController) {
     observedTabBarController = tabVC
     attachTabBarKVO(tabBar: tabVC.tabBar)
 
+    sidebarKvoTokens.forEach { $0.invalidate() }
+    sidebarKvoTokens.removeAll()
+
     if #available(iOS 18.0, *) {
       tabVC.sidebar.preferredLayout = .overlap
       let sidebarHiddenToken = tabVC.sidebar.observe(\.isHidden, options: [.new]) { [weak self] _, _ in
         self?.notifyListeners()
       }
-      kvoTokens.append(sidebarHiddenToken)
+      sidebarKvoTokens.append(sidebarHiddenToken)
+
+      let modeToken = tabVC.observe(\.mode, options: [.new]) { [weak self] _, _ in
+        self?.notifyListeners()
+      }
+      sidebarKvoTokens.append(modeToken)
     }
   }
 
   private func attachTabBarKVO(tabBar: UITabBar) {
     observedTabBar = tabBar
+    tabBarKvoTokens.forEach { $0.invalidate() }
+    tabBarKvoTokens.removeAll()
+
     let hiddenToken = tabBar.observe(\.isHidden, options: [.new]) { [weak self] _, _ in
       self?.notifyListeners()
     }
     let frameToken = tabBar.observe(\.frame, options: [.new]) { [weak self] _, _ in
       self?.notifyListeners()
     }
-    kvoTokens.append(contentsOf: [hiddenToken, frameToken])
+    tabBarKvoTokens.append(contentsOf: [hiddenToken, frameToken])
   }
 
   private func notifyListeners() {

@@ -1,10 +1,13 @@
 import { StatusBar } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { getSafeArea } from '@2security/nitro-safe-area';
+import { Uniwind } from 'uniwind';
+import { getSafeArea, syncWithUniwind } from '@2security/nitro-safe-area';
 import { BottomTabNavigator } from './navigation/BottomTabNavigator';
 
-// Query exact native insets synchronously at bundle load time (0ms)
+// ⚡ Frame 0 Synchronous Uniwind Safe Area Sync (0ms latency, zero layout shift)
+syncWithUniwind(Uniwind);
+
 const initial = getSafeArea();
 const initialMetrics = {
   insets: initial.insets,
@@ -14,7 +17,7 @@ const initialMetrics = {
 export default function App() {
   return (
     <SafeAreaProvider initialMetrics={initialMetrics}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="dark-content" />
       <NavigationContainer>
         <BottomTabNavigator />
       </NavigationContainer>
