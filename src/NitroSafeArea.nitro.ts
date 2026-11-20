@@ -8,10 +8,7 @@ export interface EdgeInsets {
 }
 
 export type NavigationMode =
-  | 'iphone_bottom_tab'
-  | 'ipad_top_capsule'
-  | 'ipad_left_sidebar'
-  | 'none';
+  'iphone_bottom_tab' | 'ipad_top_capsule' | 'ipad_left_sidebar' | 'none';
 
 export type DeviceOrientation = 'portrait' | 'landscape';
 

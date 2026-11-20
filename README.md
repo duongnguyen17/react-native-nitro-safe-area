@@ -126,19 +126,19 @@ Now, all of Uniwind's built-in safe area utilities (`pt-safe`, `pb-safe`, `pl-sa
 ```tsx
 import { View, Text, ScrollView } from 'react-native';
 
-export const TravelogiScreen = () => {
+export const ShowcaseScreen = () => {
   return (
     <View className="flex-1 bg-white">
       {/* 
         - Leftside Sidebar: px-safe-offset-5 automatically pushes content out past the 320pt sidebar.
-        - Top Capsule Tab: pt-safe-offset-2 pads list items below the 88pt capsule while content scrolls behind it.
+        - Top Capsule Tab: pt-safe-offset-10 pads list items below the 88pt capsule while content scrolls behind it.
       */}
       <ScrollView
         className="flex-1"
-        contentContainerClassName="pt-safe-offset-2 pb-safe-offset-5 px-safe-offset-5"
+        contentContainerClassName="pt-safe-offset-10 pb-safe-offset-5 px-safe-offset-5"
         showsVerticalScrollIndicator={false}
       >
-        <Text className="text-xl font-bold text-slate-900">Discover Vietnam</Text>
+        <Text className="text-xl font-bold text-slate-900">Safe Area Showcase</Text>
       </ScrollView>
     </View>
   );
@@ -307,7 +307,7 @@ Traditional safe area libraries only measure hardware insets (notch/bezel), comp
 
 ## 🏃‍♂️ Running the Example
 
-The example project demonstrates real-time iPadOS 18 dual-mode navigation, screen rotation, Travelogi screen mock, and Uniwind Tailwind CSS integration:
+The example project demonstrates real-time iPadOS 18 dual-mode navigation, screen rotation, interactive insets showcase, and Uniwind Tailwind CSS integration:
 
 ```sh
 cd example

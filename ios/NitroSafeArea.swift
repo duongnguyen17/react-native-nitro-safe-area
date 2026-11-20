@@ -2,6 +2,7 @@ import UIKit
 import NitroModules
 
 public class HybridNitroSafeArea: HybridNitroSafeAreaSpec {
+  private let lock = NSLock()
   private var listeners: [UUID: (SafeAreaMetrics) -> Void] = [:]
   private var observers: [NSObjectProtocol] = []
   private var windowKvoTokens: [NSKeyValueObservation] = []
@@ -45,11 +46,16 @@ public class HybridNitroSafeArea: HybridNitroSafeAreaSpec {
     listener: @escaping (_ metrics: SafeAreaMetrics) -> Void
   ) throws -> () -> Void {
     let id = UUID()
+    lock.lock()
     listeners[id] = listener
+    lock.unlock()
 
     // Return unregister callback
     return { [weak self] in
-      self?.listeners.removeValue(forKey: id)
+      guard let self = self else { return }
+      self.lock.lock()
+      self.listeners.removeValue(forKey: id)
+      self.lock.unlock()
     }
   }
 
@@ -151,6 +157,33 @@ public class HybridNitroSafeArea: HybridNitroSafeAreaSpec {
             tabBarHeight = Double(tabBar.frame.height)
             contentBottom = max(Double(windowInsets.bottom), tabBarHeight)
           }
+        }
+
+        // Cache last known iPad mode for zero-frame startup prediction
+        let modeKey = (mode == .ipadTopCapsule) ? "ipad_top_capsule" : "ipad_left_sidebar"
+        UserDefaults.standard.set(modeKey, forKey: "nitro_safe_area_last_pad_mode")
+      }
+    } else {
+      // TabBarController not yet mounted in hierarchy (cold start Frame 0)
+      if isPad {
+        let lastModeString = UserDefaults.standard.string(forKey: "nitro_safe_area_last_pad_mode")
+        if isLandscape {
+          // On iPad Landscape, default to Leftside Sidebar (320pt) unless previously collapsed to capsule
+          if lastModeString == "ipad_top_capsule" {
+            mode = .ipadTopCapsule
+            topCapsuleHeight = Double(windowInsets.top) + 64.0
+            contentTop = topCapsuleHeight
+          } else {
+            mode = .ipadLeftSidebar
+            sidebarWidth = 320.0
+            contentLeft = sidebarWidth
+            contentTop = Double(windowInsets.top)
+          }
+        } else {
+          // On iPad Portrait, always top capsule
+          mode = .ipadTopCapsule
+          topCapsuleHeight = Double(windowInsets.top) + 64.0
+          contentTop = topCapsuleHeight
         }
       }
     }
@@ -272,9 +305,13 @@ public class HybridNitroSafeArea: HybridNitroSafeAreaSpec {
   }
 
   private func notifyListeners() {
-    guard !listeners.isEmpty else { return }
+    lock.lock()
+    let currentListeners = Array(listeners.values)
+    lock.unlock()
+
+    guard !currentListeners.isEmpty else { return }
     let metrics = calculateMetrics()
-    for listener in listeners.values {
+    for listener in currentListeners {
       listener(metrics)
     }
   }

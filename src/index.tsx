@@ -81,10 +81,7 @@ export function useContentInsets(): EdgeInsets {
  */
 export interface UniwindLike {
   updateInsets: (insets: EdgeInsets) => void;
-  updateCSSVariables?: (
-    theme: string,
-    variables: Record<string, string | number>
-  ) => void;
+  updateCSSVariables?: (theme: any, variables: any) => void;
 }
 
 /**
@@ -126,9 +123,12 @@ export function useUniwindSafeArea(
   uniwind: UniwindLike,
   options?: { useWindowInsets?: boolean }
 ): void {
+  const shouldSyncWindowInsets = options?.useWindowInsets;
   useEffect(() => {
-    return syncWithUniwind(uniwind, options);
-  }, [uniwind, options?.useWindowInsets]);
+    return syncWithUniwind(uniwind, {
+      useWindowInsets: shouldSyncWindowInsets,
+    });
+  }, [uniwind, shouldSyncWindowInsets]);
 }
 
 /**
