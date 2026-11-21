@@ -143,14 +143,21 @@ import { syncWithUniwind } from '@2security/nitro-safe-area';
 import { RootNavigator } from './navigation/RootNavigator';
 
 // ⚡ Synchronize Frame 0 JSI insets directly into Uniwind runtime
-syncWithUniwind(Uniwind);
+syncWithUniwind(Uniwind, { adaptiveNavigation: true });
 
 export default function App() {
   return <RootNavigator />;
 }
 ```
 
-Now, all standard Tailwind safe area utility classes work automatically everywhere:
+#### Dual-Mode Utilities: Standard `safe-offset` vs `nitro-safe-offset`
+
+- **Standard Utilities (`pt-safe-offset-*`, `pb-safe-offset-*`, `px-safe-offset-*`)**:
+  Reference standard physical window insets (Notch, Dynamic Island, Home Bar, Status Bar).
+- **Nitro Utilities (`pt-nitro-safe-offset-*`, `pb-nitro-safe-offset-*`, `px-nitro-safe-offset-*`)**:
+  Reference semantic content insets (Native Bottom Tabs ~104pt, iPadOS 18 Floating Top Capsule ~88pt, iPadOS 18 Leftside Sidebar ~320pt).
+
+> 💡 **Uniwind Patch Guide**: To enable `*-nitro-safe-offset-*` alongside standard `*-safe-offset-*`, follow the step-by-step [Uniwind Patch Guide](docs/uniwind-patch.md). Ready-to-use patch file is included in `patches/uniwind+1.14.0.patch`.
 
 ```tsx
 import { View, Text, ScrollView } from 'react-native';
@@ -159,13 +166,13 @@ export const ShowcaseScreen = () => {
   return (
     <View className="flex-1 bg-white">
       {/* 
-        - pt-safe-offset-10: Insets + 10pt offset for breathing room.
-        - px-safe-offset-5: Adapts to iPad Leftside Sidebar (320pt) or Android landscape cutouts (54pt).
-        - pb-safe-offset-5: Insets + 20pt for bottom home bar or native bottom tab bar.
+        - pt-nitro-safe-offset-2: Insets + 8pt breathing room below iPad Top Capsule (~88pt) or Status Bar.
+        - px-nitro-safe-offset-5: Adapts dynamically to iPad Leftside Sidebar (~320pt) or Android landscape cutouts (~54pt).
+        - pb-nitro-safe-offset-5: Insets + 20pt for bottom home bar or native bottom tab bar (~104pt).
       */}
       <ScrollView
         className="flex-1"
-        contentContainerClassName="pt-safe-offset-10 pb-safe-offset-5 px-safe-offset-5"
+        contentContainerClassName="pt-nitro-safe-offset-2 pb-nitro-safe-offset-5 px-nitro-safe-offset-5"
         showsVerticalScrollIndicator={false}
       >
         <Text className="text-xl font-bold text-slate-900">Safe Area Showcase</Text>
@@ -360,15 +367,46 @@ export interface SafeAreaMetrics {
 
 ## 🏃‍♂️ Running the Example
 
+Clone the repository and run the demo app locally:
+
+### 1. Clone & Install Dependencies
+
 ```sh
-cd example
+# Clone the repository
+git clone https://github.com/2security/react-native-nitro-safe-area.git
+cd react-native-nitro-safe-area
+
+# Install monorepo dependencies (Yarn Berry auto-applies the Uniwind patch from patches/)
 yarn install
 
-# Run on iOS (Simulator or physical device)
-yarn ios
+# Build the library and generate Nitro native bindings
+yarn prepare
+```
 
-# Run on Android (Emulator or physical device)
-yarn android
+### 2. iOS Setup & Launch
+
+```sh
+# Install CocoaPods for the example app
+yarn example pod
+
+# Run on default iOS Simulator
+yarn example ios
+
+# 💡 Recommended: Test iPadOS 18 Adaptive Navigation (Sidebar & Top Capsule)
+yarn example ios --simulator="iPad mini (A17 Pro)"
+```
+
+### 3. Android Setup & Launch
+
+```sh
+# Make sure an Android Emulator (API 34/35) or physical device is connected
+yarn example android
+```
+
+### 4. Start Metro (Optional / Standalone)
+
+```sh
+yarn example start
 ```
 
 ---

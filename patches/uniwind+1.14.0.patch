@@ -1,0 +1,1012 @@
+diff --git a/dist/common/bundler/artifacts/css/insets.js b/dist/common/bundler/artifacts/css/insets.js
+index fcf631e54d2200ec3c4ad8af91393cbcea78465f..eedea69431aa7580d1147e81ad6b92a56b45b432 100644
+--- a/dist/common/bundler/artifacts/css/insets.js
++++ b/dist/common/bundler/artifacts/css/insets.js
+@@ -106,6 +106,10 @@ const generateCSSForInsets = () => {
+       });
+     });
+   });
++    let nitro = css;
++  nitro = nitro.replace(/@utility ([a-z0-9-]+)-safe/g, '@utility $1-nitro-safe');
++  nitro = nitro.replace(/env\(safe-area-inset-/g, 'env(nitro-safe-area-inset-');
++  css = css + "\n\n" + nitro;
+   return css.slice(0, -1);
+ };
+ const INSETS_CSS = exports.INSETS_CSS = generateCSSForInsets();
+\ No newline at end of file
+diff --git a/dist/common/bundler/css-processor/addMetaToStylesTemplate.js b/dist/common/bundler/css-processor/addMetaToStylesTemplate.js
+index 7915c43c42b3f2bb0c170167b23926a3235f0d0b..3e3f0784530cbc8f7801787ba42b739bcce78d33 100644
+--- a/dist/common/bundler/css-processor/addMetaToStylesTemplate.js
++++ b/dist/common/bundler/css-processor/addMetaToStylesTemplate.js
+@@ -96,7 +96,7 @@ const addMetaToStylesTemplate = Processor => {
+       if (stringifiedEntries.includes("rt.screen")) {
+         dependencies.add(_consts.StyleDependency.Dimensions);
+       }
+-      if (stringifiedEntries.includes("rt.insets")) {
++      if (stringifiedEntries.includes("rt.insets") || stringifiedEntries.includes("rt.nitroInsets")) {
+         dependencies.add(_consts.StyleDependency.Insets);
+       }
+       if (stringifiedEntries.includes("rt.fontScale")) {
+diff --git a/dist/common/bundler/css-processor/css.js b/dist/common/bundler/css-processor/css.js
+index cd943b6b56a728020f2d01ef3324b055c393da95..73b29677197744327114026a4b9cf29aa0d72d97 100644
+--- a/dist/common/bundler/css-processor/css.js
++++ b/dist/common/bundler/css-processor/css.js
+@@ -160,6 +160,10 @@ class CSS {
+             const inset = declarationValue.value.name.value.replace("safe-area-inset-", "");
+             return `rt.insets.${inset}`;
+           }
++          if (declarationValue.value.name?.value?.startsWith("nitro-safe-area-inset-")) {
++            const inset = declarationValue.value.name.value.replace("nitro-safe-area-inset-", "");
++            return `rt.nitroInsets.${inset}`;
++          }
+           this.logUnsupported(`Unsupported env value - ${JSON.stringify(declarationValue.value)}`);
+           return void 0;
+         case "time":
+diff --git a/dist/common/core/config/config.common.js b/dist/common/core/config/config.common.js
+index a9a77a0d7041e94aa8f08b7c17a736c3d8cedb97..4b4fc63508d84729062cd0b4cc6f842f5bf4c3a4 100644
+--- a/dist/common/core/config/config.common.js
++++ b/dist/common/core/config/config.common.js
+@@ -82,6 +82,8 @@ class UniwindConfigBuilder {
+   updateCSSVariables(theme, cssVariables) {}
+   // oxlint-disable-next-line typescript/no-unused-vars
+   updateInsets(insets) {}
++  // oxlint-disable-next-line typescript/no-unused-vars
++  updateNitroInsets(insets) {}
+   getCSSVariable = variableName => {
+     return (0, _useCSSVariable.getCSSVariable)(variableName, {
+       scopedTheme: null,
+diff --git a/dist/common/core/config/config.native.js b/dist/common/core/config/config.native.js
+index b9509ca564d6a01af712d631a121224044135bb6..4762469721d2b28b831231b24711920f09b1b55a 100644
+--- a/dist/common/core/config/config.native.js
++++ b/dist/common/core/config/config.native.js
+@@ -34,6 +34,13 @@ class UniwindConfigBuilder extends _config.UniwindConfigBuilder {
+     _native.UniwindStore.runtime.insets.right = insets.right ?? 0;
+     _listener.UniwindListener.notify([_consts.StyleDependency.Insets]);
+   }
++  updateNitroInsets(insets) {
++    _native.UniwindStore.runtime.nitroInsets.bottom = insets.bottom ?? 0;
++    _native.UniwindStore.runtime.nitroInsets.top = insets.top ?? 0;
++    _native.UniwindStore.runtime.nitroInsets.left = insets.left ?? 0;
++    _native.UniwindStore.runtime.nitroInsets.right = insets.right ?? 0;
++    _listener.UniwindListener.notify([_consts.StyleDependency.Insets]);
++  }
+   __reinit(generateStyleSheetCallback, themes, stylesFingerprint) {
+     if (__DEV__ && stylesFingerprint !== void 0 && stylesFingerprint === this.stylesFingerprint) {
+       return;
+diff --git a/dist/common/core/native/runtime.js b/dist/common/core/native/runtime.js
+index e5da209dce105f3db86e41de5236d29964ead970..e13646bf6f524888f7a587484a9b7a4f06c1c377 100644
+--- a/dist/common/core/native/runtime.js
++++ b/dist/common/core/native/runtime.js
+@@ -26,6 +26,12 @@ const UniwindRuntime = exports.UniwindRuntime = {
+     bottom: 0,
+     right: 0
+   },
++  nitroInsets: {
++    top: 0,
++    left: 0,
++    bottom: 0,
++    right: 0
++  },
+   colorMix: _nativeUtils.colorMix,
+   pixelRatio: value => value * _reactNative.PixelRatio.get(),
+   cubicBezier: () => "",
+diff --git a/dist/metro/transformer.cjs b/dist/metro/transformer.cjs
+index 59d8ce52857537ea01b6b4ae499eb9348ad5ba8d..47496d82133033971e8c8528595b8ac497db1dc3 100644
+--- a/dist/metro/transformer.cjs
++++ b/dist/metro/transformer.cjs
+@@ -293,7 +293,7 @@ const addMetaToStylesTemplate = (Processor) => {
+       if (stringifiedEntries.includes("rt.screen")) {
+         dependencies.add(config.StyleDependency.Dimensions);
+       }
+-      if (stringifiedEntries.includes("rt.insets")) {
++      if (stringifiedEntries.includes("rt.insets") || stringifiedEntries.includes("rt.nitroInsets")) {
+         dependencies.add(config.StyleDependency.Insets);
+       }
+       if (stringifiedEntries.includes("rt.fontScale")) {
+@@ -606,6 +606,10 @@ class CSS {
+             const inset = declarationValue.value.name.value.replace("safe-area-inset-", "");
+             return `rt.insets.${inset}`;
+           }
++          if (declarationValue.value.name?.value?.startsWith("nitro-safe-area-inset-")) {
++            const inset = declarationValue.value.name.value.replace("nitro-safe-area-inset-", "");
++            return `rt.nitroInsets.${inset}`;
++          }
+           this.logUnsupported(`Unsupported env value - ${JSON.stringify(declarationValue.value)}`);
+           return void 0;
+         case "time": {
+diff --git a/dist/metro/transformer.mjs b/dist/metro/transformer.mjs
+index afea72071c018fd2e9dd8549058b082dd1ea1031..a75ed4d05bf1bd2687457b0f44ab2600f745c9e5 100644
+--- a/dist/metro/transformer.mjs
++++ b/dist/metro/transformer.mjs
+@@ -286,7 +286,7 @@ const addMetaToStylesTemplate = (Processor) => {
+       if (stringifiedEntries.includes("rt.screen")) {
+         dependencies.add(StyleDependency.Dimensions);
+       }
+-      if (stringifiedEntries.includes("rt.insets")) {
++      if (stringifiedEntries.includes("rt.insets") || stringifiedEntries.includes("rt.nitroInsets")) {
+         dependencies.add(StyleDependency.Insets);
+       }
+       if (stringifiedEntries.includes("rt.fontScale")) {
+@@ -599,6 +599,10 @@ class CSS {
+             const inset = declarationValue.value.name.value.replace("safe-area-inset-", "");
+             return `rt.insets.${inset}`;
+           }
++          if (declarationValue.value.name?.value?.startsWith("nitro-safe-area-inset-")) {
++            const inset = declarationValue.value.name.value.replace("nitro-safe-area-inset-", "");
++            return `rt.nitroInsets.${inset}`;
++          }
+           this.logUnsupported(`Unsupported env value - ${JSON.stringify(declarationValue.value)}`);
+           return void 0;
+         case "time": {
+diff --git a/dist/module/bundler/artifacts/css/insets.js b/dist/module/bundler/artifacts/css/insets.js
+index eeea246c46a884d278f5aa675454b04e156daee4..fa0c733b4bbaf13dfad6e2de742a0928eef48972 100644
+--- a/dist/module/bundler/artifacts/css/insets.js
++++ b/dist/module/bundler/artifacts/css/insets.js
+@@ -122,6 +122,10 @@ const generateCSSForInsets = () => {
+       });
+     });
+   });
++    let nitro = css;
++  nitro = nitro.replace(/@utility ([a-z0-9-]+)-safe/g, '@utility $1-nitro-safe');
++  nitro = nitro.replace(/env\(safe-area-inset-/g, 'env(nitro-safe-area-inset-');
++  css = css + "\n\n" + nitro;
+   return css.slice(0, -1);
+ };
+ export const INSETS_CSS = generateCSSForInsets();
+diff --git a/dist/module/bundler/css-processor/addMetaToStylesTemplate.js b/dist/module/bundler/css-processor/addMetaToStylesTemplate.js
+index 2ad2ed978d3c4a2ad1c52a9c39d715552d1f9f8b..93f4ac02112064f6c5d741811a38417bfc8f261f 100644
+--- a/dist/module/bundler/css-processor/addMetaToStylesTemplate.js
++++ b/dist/module/bundler/css-processor/addMetaToStylesTemplate.js
+@@ -89,7 +89,7 @@ export const addMetaToStylesTemplate = (Processor) => {
+       if (stringifiedEntries.includes("rt.screen")) {
+         dependencies.add(StyleDependency.Dimensions);
+       }
+-      if (stringifiedEntries.includes("rt.insets")) {
++      if (stringifiedEntries.includes("rt.insets") || stringifiedEntries.includes("rt.nitroInsets")) {
+         dependencies.add(StyleDependency.Insets);
+       }
+       if (stringifiedEntries.includes("rt.fontScale")) {
+diff --git a/dist/module/bundler/css-processor/css.js b/dist/module/bundler/css-processor/css.js
+index d4bed369d5551da105a757cd47225367c93d1c85..a1e6e89ec365196ab49cdfed2364d50526d872ef 100644
+--- a/dist/module/bundler/css-processor/css.js
++++ b/dist/module/bundler/css-processor/css.js
+@@ -165,6 +165,10 @@ export class CSS {
+             const inset = declarationValue.value.name.value.replace("safe-area-inset-", "");
+             return `rt.insets.${inset}`;
+           }
++          if (declarationValue.value.name?.value?.startsWith("nitro-safe-area-inset-")) {
++            const inset = declarationValue.value.name.value.replace("nitro-safe-area-inset-", "");
++            return `rt.nitroInsets.${inset}`;
++          }
+           this.logUnsupported(`Unsupported env value - ${JSON.stringify(declarationValue.value)}`);
+           return void 0;
+         case "time": {
+diff --git a/dist/module/core/config/config.common.d.ts b/dist/module/core/config/config.common.d.ts
+index 8edc6edc70214ffaf380e849dc4a82d9bb6aec8c..20f9ea79f6b70807546032aaea23cb3cc01980cd 100644
+--- a/dist/module/core/config/config.common.d.ts
++++ b/dist/module/core/config/config.common.d.ts
+@@ -13,6 +13,7 @@ export declare class UniwindConfigBuilder {
+     setTheme(theme: ThemeName | typeof SYSTEM_THEME): void;
+     updateCSSVariables(theme: ThemeName, cssVariables: CSSVariables): void;
+     updateInsets(insets: Insets): void;
++    updateNitroInsets(insets: Insets): void;
+     getCSSVariable: GetCSSVariable;
+     protected __reinit(_: GenerateStyleSheetsCallback, themes: Array<string>): void;
+     protected onThemeChange(): void;
+diff --git a/dist/module/core/config/config.common.js b/dist/module/core/config/config.common.js
+index f0933991d0a052fbb4c00be6abf9f6e1bc37658f..85225d48d4cea2109de0b66f1087baec69025b4b 100644
+--- a/dist/module/core/config/config.common.js
++++ b/dist/module/core/config/config.common.js
+@@ -79,6 +79,9 @@ export class UniwindConfigBuilder {
+   // oxlint-disable-next-line typescript/no-unused-vars
+   updateInsets(insets) {
+   }
++  // oxlint-disable-next-line typescript/no-unused-vars
++  updateNitroInsets(insets) {
++  }
+   getCSSVariable = ((variableName) => {
+     return getCSSVariable(variableName, { scopedTheme: null, rtl: null, variables: null });
+   });
+diff --git a/dist/module/core/config/config.native.d.ts b/dist/module/core/config/config.native.d.ts
+index 16ffa76fd89a5fe5c53e5dbd16cd90ab0295960c..fd8f58c1c4d0887cf2bc01a9db7c092db9651a97 100644
+--- a/dist/module/core/config/config.native.d.ts
++++ b/dist/module/core/config/config.native.d.ts
+@@ -6,6 +6,7 @@ declare class UniwindConfigBuilder extends UniwindConfigBuilderBase {
+     constructor();
+     updateCSSVariables(theme: ThemeName, variables: CSSVariables): void;
+     updateInsets(insets: Insets): void;
++    updateNitroInsets(insets: Insets): void;
+     protected __reinit(generateStyleSheetCallback: GenerateStyleSheetsCallback, themes: Array<string>, stylesFingerprint?: string): void;
+     protected onThemeChange(): void;
+ }
+diff --git a/dist/module/core/config/config.native.js b/dist/module/core/config/config.native.js
+index c0b60e0b39af4658bb2ac5270aa6368a3f0c2645..89699c0758b78dbd74b1086f2a663d5de12484b4 100644
+--- a/dist/module/core/config/config.native.js
++++ b/dist/module/core/config/config.native.js
+@@ -28,6 +28,13 @@ class UniwindConfigBuilder extends UniwindConfigBuilderBase {
+     UniwindStore.runtime.insets.right = insets.right ?? 0;
+     UniwindListener.notify([StyleDependency.Insets]);
+   }
++  updateNitroInsets(insets) {
++    UniwindStore.runtime.nitroInsets.bottom = insets.bottom ?? 0;
++    UniwindStore.runtime.nitroInsets.top = insets.top ?? 0;
++    UniwindStore.runtime.nitroInsets.left = insets.left ?? 0;
++    UniwindStore.runtime.nitroInsets.right = insets.right ?? 0;
++    UniwindListener.notify([StyleDependency.Insets]);
++  }
+   __reinit(generateStyleSheetCallback, themes, stylesFingerprint) {
+     if (__DEV__ && stylesFingerprint !== void 0 && stylesFingerprint === this.stylesFingerprint) {
+       return;
+diff --git a/dist/module/core/native/runtime.js b/dist/module/core/native/runtime.js
+index dbc5f309c682f03ba317980a6a4dbd9c627dcc4f..66f44725a7890c9c1487189872dea2595286ac5c 100644
+--- a/dist/module/core/native/runtime.js
++++ b/dist/module/core/native/runtime.js
+@@ -20,6 +20,12 @@ export const UniwindRuntime = {
+     bottom: 0,
+     right: 0
+   },
++  nitroInsets: {
++    top: 0,
++    left: 0,
++    bottom: 0,
++    right: 0
++  },
+   colorMix,
+   pixelRatio: (value) => value * PixelRatio.get(),
+   cubicBezier: () => "",
+diff --git a/dist/module/core/types.d.ts b/dist/module/core/types.d.ts
+index 0635fe247485ff680eb090e2f0791658b45cf07b..9bb8dfe166f2aa8574ad604d9bcf690d59e9bfce 100644
+--- a/dist/module/core/types.d.ts
++++ b/dist/module/core/types.d.ts
+@@ -42,6 +42,12 @@ export type UniwindRuntime = {
+         left: number;
+         right: number;
+     };
++    nitroInsets: {
++        top: number;
++        bottom: number;
++        left: number;
++        right: number;
++    };
+     hairlineWidth: number;
+     pixelRatio: (value: number) => number;
+     fontScale: (value: number) => number;
+diff --git a/dist/shared/uniwind.DJ5xwHGq.cjs b/dist/shared/uniwind.DJ5xwHGq.cjs
+index 466e21f49645e3e13b4645b6334dc498b0f7b7c8..4b48c7a4e4aaf249b352963c1c914cda0efc97b4 100644
+--- a/dist/shared/uniwind.DJ5xwHGq.cjs
++++ b/dist/shared/uniwind.DJ5xwHGq.cjs
+@@ -186,6 +186,10 @@ const generateCSSForInsets = () => {
+       });
+     });
+   });
++    let nitro = css;
++  nitro = nitro.replace(/@utility ([a-z0-9-]+)-safe/g, '@utility $1-nitro-safe');
++  nitro = nitro.replace(/env\(safe-area-inset-/g, 'env(nitro-safe-area-inset-');
++  css = css + "\n\n" + nitro;
+   return css.slice(0, -1);
+ };
+ const INSETS_CSS = generateCSSForInsets();
+diff --git a/dist/shared/uniwind.KV_8Ymgr.mjs b/dist/shared/uniwind.KV_8Ymgr.mjs
+index 36aba16db5a7c4f15c45476722ee9c592260e37f..2e04ba50758b9d69ff6e46e0576a144309f8378f 100644
+--- a/dist/shared/uniwind.KV_8Ymgr.mjs
++++ b/dist/shared/uniwind.KV_8Ymgr.mjs
+@@ -178,6 +178,10 @@ const generateCSSForInsets = () => {
+       });
+     });
+   });
++    let nitro = css;
++  nitro = nitro.replace(/@utility ([a-z0-9-]+)-safe/g, '@utility $1-nitro-safe');
++  nitro = nitro.replace(/env\(safe-area-inset-/g, 'env(nitro-safe-area-inset-');
++  css = css + "\n\n" + nitro;
+   return css.slice(0, -1);
+ };
+ const INSETS_CSS = generateCSSForInsets();
+diff --git a/src/bundler/artifacts/css/insets.ts b/src/bundler/artifacts/css/insets.ts
+index 2137458dac866d2cfc5d1da7d0f26a9dd903bb45..5f25e34a582016309a9e7dff03befbca60022e87 100644
+--- a/src/bundler/artifacts/css/insets.ts
++++ b/src/bundler/artifacts/css/insets.ts
+@@ -150,6 +150,10 @@ const generateCSSForInsets = () => {
+     })
+ 
+     // Remove the last newline character
++        let nitro = css
++    nitro = nitro.replace(/@utility ([a-z0-9-]+)-safe/g, '@utility $1-nitro-safe')
++    nitro = nitro.replace(/env\(safe-area-inset-/g, 'env(nitro-safe-area-inset-')
++    css = css + '\n\n' + nitro
+     return css.slice(0, -1)
+ }
+ 
+diff --git a/src/bundler/css-processor/addMetaToStylesTemplate.ts b/src/bundler/css-processor/addMetaToStylesTemplate.ts
+index 7625f2ff8f21cdbbc9b75822c061f41a22f2cc5d..61d01ed42006d92f16fd2f73d944912edca83015 100644
+--- a/src/bundler/css-processor/addMetaToStylesTemplate.ts
++++ b/src/bundler/css-processor/addMetaToStylesTemplate.ts
+@@ -132,7 +132,7 @@ export const addMetaToStylesTemplate = (Processor: ProcessorBuilder) => {
+                     dependencies.add(StyleDependency.Dimensions)
+                 }
+ 
+-                if (stringifiedEntries.includes('rt.insets')) {
++                if (stringifiedEntries.includes('rt.insets') || stringifiedEntries.includes('rt.nitroInsets')) {
+                     dependencies.add(StyleDependency.Insets)
+                 }
+ 
+diff --git a/src/bundler/css-processor/css.ts b/src/bundler/css-processor/css.ts
+index 0f1ff4f2c64a915455d924c668fb5b25254ddbbe..b603e57238e16669f1e3e36b4b27ebd8cd8ec9e0 100644
+--- a/src/bundler/css-processor/css.ts
++++ b/src/bundler/css-processor/css.ts
+@@ -186,6 +186,11 @@ export class CSS {
+ 
+                         return `rt.insets.${inset}`
+                     }
++                    if (declarationValue.value.name?.value?.startsWith('nitro-safe-area-inset-')) {
++                        const inset = declarationValue.value.name.value.replace('nitro-safe-area-inset-', '')
++
++                        return `rt.nitroInsets.${inset}`
++                    }
+ 
+                     this.logUnsupported(`Unsupported env value - ${JSON.stringify(declarationValue.value)}`)
+ 
+diff --git a/src/core/config/config.common.ts b/src/core/config/config.common.ts
+index a6b95ce92d769136cc624956fa6287cfbce81909..1797b82f4899cf697eb765fa421a698a8331bb26 100644
+--- a/src/core/config/config.common.ts
++++ b/src/core/config/config.common.ts
+@@ -119,6 +119,11 @@ export class UniwindConfigBuilder {
+         // noop
+     }
+ 
++    // oxlint-disable-next-line typescript/no-unused-vars
++    updateNitroInsets(insets: Insets) {
++        // noop
++    }
++
+     getCSSVariable = ((variableName: string | Array<string>) => {
+         return getCSSVariable(variableName, { scopedTheme: null, rtl: null, variables: null })
+     }) as GetCSSVariable
+diff --git a/src/core/config/config.native.ts b/src/core/config/config.native.ts
+index 34c6761dec9f617c65c5251a6d471c58423ab4ed..75c65d1533ebb93509955d729a5f1e4da5afbfeb 100644
+--- a/src/core/config/config.native.ts
++++ b/src/core/config/config.native.ts
+@@ -38,6 +38,14 @@ class UniwindConfigBuilder extends UniwindConfigBuilderBase {
+         UniwindListener.notify([StyleDependency.Insets])
+     }
+ 
++    updateNitroInsets(insets: Insets) {
++        UniwindStore.runtime.nitroInsets.bottom = insets.bottom ?? 0
++        UniwindStore.runtime.nitroInsets.top = insets.top ?? 0
++        UniwindStore.runtime.nitroInsets.left = insets.left ?? 0
++        UniwindStore.runtime.nitroInsets.right = insets.right ?? 0
++        UniwindListener.notify([StyleDependency.Insets])
++    }
++
+     protected __reinit(
+         generateStyleSheetCallback: GenerateStyleSheetsCallback,
+         themes: Array<string>,
+diff --git a/src/core/native/runtime.ts b/src/core/native/runtime.ts
+index 6da4c656dac8945e19b41c9a8c7c27265af31628..400c7211a8c9ec9032b9c632373ca097fc637a16 100644
+--- a/src/core/native/runtime.ts
++++ b/src/core/native/runtime.ts
+@@ -23,6 +23,12 @@ export const UniwindRuntime = {
+         bottom: 0,
+         right: 0,
+     },
++    nitroInsets: {
++        top: 0,
++        left: 0,
++        bottom: 0,
++        right: 0,
++    },
+     colorMix,
+     pixelRatio: value => value * PixelRatio.get(),
+     cubicBezier: () => '',
+diff --git a/src/core/types.ts b/src/core/types.ts
+index 6f2e188c5c3cb520495c358daae90b76ed496aef..d245f5e2bfb6a777c41aa68a51685bbba35d184d 100644
+--- a/src/core/types.ts
++++ b/src/core/types.ts
+@@ -54,6 +54,12 @@ export type UniwindRuntime = {
+         left: number
+         right: number
+     }
++    nitroInsets: {
++        top: number
++        bottom: number
++        left: number
++        right: number
++    }
+     hairlineWidth: number
+     pixelRatio: (value: number) => number
+     fontScale: (value: number) => number
+diff --git a/uniwind.css b/uniwind.css
+index f941697fae03d41bdf3f1c14836cb2f35f7c5c28..23f36b3a2d532f5fcb8b5c3d58eba5bb4db76d75 100644
+--- a/uniwind.css
++++ b/uniwind.css
+@@ -592,3 +592,591 @@
+        }
+    }
+ }
++
++
++@utility h-screen-nitro-safe {
++    height: calc(100vh - (env(nitro-safe-area-inset-top) + env(nitro-safe-area-inset-bottom)));
++}
++
++@utility m-nitro-safe {
++    margin-top: env(nitro-safe-area-inset-top);
++    margin-bottom: env(nitro-safe-area-inset-bottom);
++    margin-left: env(nitro-safe-area-inset-left);
++    margin-right: env(nitro-safe-area-inset-right);
++}
++
++@utility m-nitro-safe-or-* {
++    margin-top: max(env(nitro-safe-area-inset-top), --spacing(--value(integer)));
++    margin-top: max(env(nitro-safe-area-inset-top), --value([length], --spacing-*));
++    margin-bottom: max(env(nitro-safe-area-inset-bottom), --spacing(--value(integer)));
++    margin-bottom: max(env(nitro-safe-area-inset-bottom), --value([length], --spacing-*));
++    margin-left: max(env(nitro-safe-area-inset-left), --spacing(--value(integer)));
++    margin-left: max(env(nitro-safe-area-inset-left), --value([length], --spacing-*));
++    margin-right: max(env(nitro-safe-area-inset-right), --spacing(--value(integer)));
++    margin-right: max(env(nitro-safe-area-inset-right), --value([length], --spacing-*));
++}
++
++@utility m-nitro-safe-offset-* {
++    margin-top: calc(env(nitro-safe-area-inset-top) + --spacing(--value(integer)));
++    margin-top: calc(env(nitro-safe-area-inset-top) + --value([length], --spacing-*));
++    margin-bottom: calc(env(nitro-safe-area-inset-bottom) + --spacing(--value(integer)));
++    margin-bottom: calc(env(nitro-safe-area-inset-bottom) + --value([length], --spacing-*));
++    margin-left: calc(env(nitro-safe-area-inset-left) + --spacing(--value(integer)));
++    margin-left: calc(env(nitro-safe-area-inset-left) + --value([length], --spacing-*));
++    margin-right: calc(env(nitro-safe-area-inset-right) + --spacing(--value(integer)));
++    margin-right: calc(env(nitro-safe-area-inset-right) + --value([length], --spacing-*));
++}
++
++@utility mx-nitro-safe {
++    margin-left: env(nitro-safe-area-inset-left);
++    margin-right: env(nitro-safe-area-inset-right);
++}
++
++@utility mx-nitro-safe-or-* {
++    margin-left: max(env(nitro-safe-area-inset-left), --spacing(--value(integer)));
++    margin-left: max(env(nitro-safe-area-inset-left), --value([length], --spacing-*));
++    margin-right: max(env(nitro-safe-area-inset-right), --spacing(--value(integer)));
++    margin-right: max(env(nitro-safe-area-inset-right), --value([length], --spacing-*));
++}
++
++@utility mx-nitro-safe-offset-* {
++    margin-left: calc(env(nitro-safe-area-inset-left) + --spacing(--value(integer)));
++    margin-left: calc(env(nitro-safe-area-inset-left) + --value([length], --spacing-*));
++    margin-right: calc(env(nitro-safe-area-inset-right) + --spacing(--value(integer)));
++    margin-right: calc(env(nitro-safe-area-inset-right) + --value([length], --spacing-*));
++}
++
++@utility my-nitro-safe {
++    margin-top: env(nitro-safe-area-inset-top);
++    margin-bottom: env(nitro-safe-area-inset-bottom);
++}
++
++@utility my-nitro-safe-or-* {
++    margin-top: max(env(nitro-safe-area-inset-top), --spacing(--value(integer)));
++    margin-top: max(env(nitro-safe-area-inset-top), --value([length], --spacing-*));
++    margin-bottom: max(env(nitro-safe-area-inset-bottom), --spacing(--value(integer)));
++    margin-bottom: max(env(nitro-safe-area-inset-bottom), --value([length], --spacing-*));
++}
++
++@utility my-nitro-safe-offset-* {
++    margin-top: calc(env(nitro-safe-area-inset-top) + --spacing(--value(integer)));
++    margin-top: calc(env(nitro-safe-area-inset-top) + --value([length], --spacing-*));
++    margin-bottom: calc(env(nitro-safe-area-inset-bottom) + --spacing(--value(integer)));
++    margin-bottom: calc(env(nitro-safe-area-inset-bottom) + --value([length], --spacing-*));
++}
++
++@utility mt-nitro-safe {
++    margin-top: env(nitro-safe-area-inset-top);
++}
++
++@utility mt-nitro-safe-or-* {
++    margin-top: max(env(nitro-safe-area-inset-top), --spacing(--value(integer)));
++    margin-top: max(env(nitro-safe-area-inset-top), --value([length], --spacing-*));
++}
++
++@utility mt-nitro-safe-offset-* {
++    margin-top: calc(env(nitro-safe-area-inset-top) + --spacing(--value(integer)));
++    margin-top: calc(env(nitro-safe-area-inset-top) + --value([length], --spacing-*));
++}
++
++@utility mb-nitro-safe {
++    margin-bottom: env(nitro-safe-area-inset-bottom);
++}
++
++@utility mb-nitro-safe-or-* {
++    margin-bottom: max(env(nitro-safe-area-inset-bottom), --spacing(--value(integer)));
++    margin-bottom: max(env(nitro-safe-area-inset-bottom), --value([length], --spacing-*));
++}
++
++@utility mb-nitro-safe-offset-* {
++    margin-bottom: calc(env(nitro-safe-area-inset-bottom) + --spacing(--value(integer)));
++    margin-bottom: calc(env(nitro-safe-area-inset-bottom) + --value([length], --spacing-*));
++}
++
++@utility ml-nitro-safe {
++    margin-left: env(nitro-safe-area-inset-left);
++}
++
++@utility ml-nitro-safe-or-* {
++    margin-left: max(env(nitro-safe-area-inset-left), --spacing(--value(integer)));
++    margin-left: max(env(nitro-safe-area-inset-left), --value([length], --spacing-*));
++}
++
++@utility ml-nitro-safe-offset-* {
++    margin-left: calc(env(nitro-safe-area-inset-left) + --spacing(--value(integer)));
++    margin-left: calc(env(nitro-safe-area-inset-left) + --value([length], --spacing-*));
++}
++
++@utility mr-nitro-safe {
++    margin-right: env(nitro-safe-area-inset-right);
++}
++
++@utility mr-nitro-safe-or-* {
++    margin-right: max(env(nitro-safe-area-inset-right), --spacing(--value(integer)));
++    margin-right: max(env(nitro-safe-area-inset-right), --value([length], --spacing-*));
++}
++
++@utility mr-nitro-safe-offset-* {
++    margin-right: calc(env(nitro-safe-area-inset-right) + --spacing(--value(integer)));
++    margin-right: calc(env(nitro-safe-area-inset-right) + --value([length], --spacing-*));
++}
++
++@utility ms-nitro-safe {
++    margin-inline-start: env(nitro-safe-area-inset-left);
++
++    @variant rtl {
++        margin-inline-start: env(nitro-safe-area-inset-right);
++    }
++}
++
++@utility ms-nitro-safe-or-* {
++    margin-inline-start: max(env(nitro-safe-area-inset-left), --spacing(--value(integer)));
++    margin-inline-start: max(env(nitro-safe-area-inset-left), --value([length], --spacing-*));
++
++    @variant rtl {
++        margin-inline-start: max(env(nitro-safe-area-inset-right), --spacing(--value(integer)));
++        margin-inline-start: max(env(nitro-safe-area-inset-right), --value([length], --spacing-*));
++    }
++}
++
++@utility ms-nitro-safe-offset-* {
++    margin-inline-start: calc(env(nitro-safe-area-inset-left) + --spacing(--value(integer)));
++    margin-inline-start: calc(env(nitro-safe-area-inset-left) + --value([length], --spacing-*));
++
++    @variant rtl {
++        margin-inline-start: calc(env(nitro-safe-area-inset-right) + --spacing(--value(integer)));
++        margin-inline-start: calc(env(nitro-safe-area-inset-right) + --value([length], --spacing-*));
++    }
++}
++
++@utility me-nitro-safe {
++    margin-inline-end: env(nitro-safe-area-inset-right);
++
++    @variant rtl {
++        margin-inline-end: env(nitro-safe-area-inset-left);
++    }
++}
++
++@utility me-nitro-safe-or-* {
++    margin-inline-end: max(env(nitro-safe-area-inset-right), --spacing(--value(integer)));
++    margin-inline-end: max(env(nitro-safe-area-inset-right), --value([length], --spacing-*));
++
++    @variant rtl {
++        margin-inline-end: max(env(nitro-safe-area-inset-left), --spacing(--value(integer)));
++        margin-inline-end: max(env(nitro-safe-area-inset-left), --value([length], --spacing-*));
++    }
++}
++
++@utility me-nitro-safe-offset-* {
++    margin-inline-end: calc(env(nitro-safe-area-inset-right) + --spacing(--value(integer)));
++    margin-inline-end: calc(env(nitro-safe-area-inset-right) + --value([length], --spacing-*));
++
++    @variant rtl {
++        margin-inline-end: calc(env(nitro-safe-area-inset-left) + --spacing(--value(integer)));
++        margin-inline-end: calc(env(nitro-safe-area-inset-left) + --value([length], --spacing-*));
++    }
++}
++
++@utility p-nitro-safe {
++    padding-top: env(nitro-safe-area-inset-top);
++    padding-bottom: env(nitro-safe-area-inset-bottom);
++    padding-left: env(nitro-safe-area-inset-left);
++    padding-right: env(nitro-safe-area-inset-right);
++}
++
++@utility p-nitro-safe-or-* {
++    padding-top: max(env(nitro-safe-area-inset-top), --spacing(--value(integer)));
++    padding-top: max(env(nitro-safe-area-inset-top), --value([length], --spacing-*));
++    padding-bottom: max(env(nitro-safe-area-inset-bottom), --spacing(--value(integer)));
++    padding-bottom: max(env(nitro-safe-area-inset-bottom), --value([length], --spacing-*));
++    padding-left: max(env(nitro-safe-area-inset-left), --spacing(--value(integer)));
++    padding-left: max(env(nitro-safe-area-inset-left), --value([length], --spacing-*));
++    padding-right: max(env(nitro-safe-area-inset-right), --spacing(--value(integer)));
++    padding-right: max(env(nitro-safe-area-inset-right), --value([length], --spacing-*));
++}
++
++@utility p-nitro-safe-offset-* {
++    padding-top: calc(env(nitro-safe-area-inset-top) + --spacing(--value(integer)));
++    padding-top: calc(env(nitro-safe-area-inset-top) + --value([length], --spacing-*));
++    padding-bottom: calc(env(nitro-safe-area-inset-bottom) + --spacing(--value(integer)));
++    padding-bottom: calc(env(nitro-safe-area-inset-bottom) + --value([length], --spacing-*));
++    padding-left: calc(env(nitro-safe-area-inset-left) + --spacing(--value(integer)));
++    padding-left: calc(env(nitro-safe-area-inset-left) + --value([length], --spacing-*));
++    padding-right: calc(env(nitro-safe-area-inset-right) + --spacing(--value(integer)));
++    padding-right: calc(env(nitro-safe-area-inset-right) + --value([length], --spacing-*));
++}
++
++@utility px-nitro-safe {
++    padding-left: env(nitro-safe-area-inset-left);
++    padding-right: env(nitro-safe-area-inset-right);
++}
++
++@utility px-nitro-safe-or-* {
++    padding-left: max(env(nitro-safe-area-inset-left), --spacing(--value(integer)));
++    padding-left: max(env(nitro-safe-area-inset-left), --value([length], --spacing-*));
++    padding-right: max(env(nitro-safe-area-inset-right), --spacing(--value(integer)));
++    padding-right: max(env(nitro-safe-area-inset-right), --value([length], --spacing-*));
++}
++
++@utility px-nitro-safe-offset-* {
++    padding-left: calc(env(nitro-safe-area-inset-left) + --spacing(--value(integer)));
++    padding-left: calc(env(nitro-safe-area-inset-left) + --value([length], --spacing-*));
++    padding-right: calc(env(nitro-safe-area-inset-right) + --spacing(--value(integer)));
++    padding-right: calc(env(nitro-safe-area-inset-right) + --value([length], --spacing-*));
++}
++
++@utility py-nitro-safe {
++    padding-top: env(nitro-safe-area-inset-top);
++    padding-bottom: env(nitro-safe-area-inset-bottom);
++}
++
++@utility py-nitro-safe-or-* {
++    padding-top: max(env(nitro-safe-area-inset-top), --spacing(--value(integer)));
++    padding-top: max(env(nitro-safe-area-inset-top), --value([length], --spacing-*));
++    padding-bottom: max(env(nitro-safe-area-inset-bottom), --spacing(--value(integer)));
++    padding-bottom: max(env(nitro-safe-area-inset-bottom), --value([length], --spacing-*));
++}
++
++@utility py-nitro-safe-offset-* {
++    padding-top: calc(env(nitro-safe-area-inset-top) + --spacing(--value(integer)));
++    padding-top: calc(env(nitro-safe-area-inset-top) + --value([length], --spacing-*));
++    padding-bottom: calc(env(nitro-safe-area-inset-bottom) + --spacing(--value(integer)));
++    padding-bottom: calc(env(nitro-safe-area-inset-bottom) + --value([length], --spacing-*));
++}
++
++@utility pt-nitro-safe {
++    padding-top: env(nitro-safe-area-inset-top);
++}
++
++@utility pt-nitro-safe-or-* {
++    padding-top: max(env(nitro-safe-area-inset-top), --spacing(--value(integer)));
++    padding-top: max(env(nitro-safe-area-inset-top), --value([length], --spacing-*));
++}
++
++@utility pt-nitro-safe-offset-* {
++    padding-top: calc(env(nitro-safe-area-inset-top) + --spacing(--value(integer)));
++    padding-top: calc(env(nitro-safe-area-inset-top) + --value([length], --spacing-*));
++}
++
++@utility pb-nitro-safe {
++    padding-bottom: env(nitro-safe-area-inset-bottom);
++}
++
++@utility pb-nitro-safe-or-* {
++    padding-bottom: max(env(nitro-safe-area-inset-bottom), --spacing(--value(integer)));
++    padding-bottom: max(env(nitro-safe-area-inset-bottom), --value([length], --spacing-*));
++}
++
++@utility pb-nitro-safe-offset-* {
++    padding-bottom: calc(env(nitro-safe-area-inset-bottom) + --spacing(--value(integer)));
++    padding-bottom: calc(env(nitro-safe-area-inset-bottom) + --value([length], --spacing-*));
++}
++
++@utility pl-nitro-safe {
++    padding-left: env(nitro-safe-area-inset-left);
++}
++
++@utility pl-nitro-safe-or-* {
++    padding-left: max(env(nitro-safe-area-inset-left), --spacing(--value(integer)));
++    padding-left: max(env(nitro-safe-area-inset-left), --value([length], --spacing-*));
++}
++
++@utility pl-nitro-safe-offset-* {
++    padding-left: calc(env(nitro-safe-area-inset-left) + --spacing(--value(integer)));
++    padding-left: calc(env(nitro-safe-area-inset-left) + --value([length], --spacing-*));
++}
++
++@utility pr-nitro-safe {
++    padding-right: env(nitro-safe-area-inset-right);
++}
++
++@utility pr-nitro-safe-or-* {
++    padding-right: max(env(nitro-safe-area-inset-right), --spacing(--value(integer)));
++    padding-right: max(env(nitro-safe-area-inset-right), --value([length], --spacing-*));
++}
++
++@utility pr-nitro-safe-offset-* {
++    padding-right: calc(env(nitro-safe-area-inset-right) + --spacing(--value(integer)));
++    padding-right: calc(env(nitro-safe-area-inset-right) + --value([length], --spacing-*));
++}
++
++@utility ps-nitro-safe {
++    padding-inline-start: env(nitro-safe-area-inset-left);
++
++    @variant rtl {
++        padding-inline-start: env(nitro-safe-area-inset-right);
++    }
++}
++
++@utility ps-nitro-safe-or-* {
++    padding-inline-start: max(env(nitro-safe-area-inset-left), --spacing(--value(integer)));
++    padding-inline-start: max(env(nitro-safe-area-inset-left), --value([length], --spacing-*));
++
++    @variant rtl {
++        padding-inline-start: max(env(nitro-safe-area-inset-right), --spacing(--value(integer)));
++        padding-inline-start: max(env(nitro-safe-area-inset-right), --value([length], --spacing-*));
++    }
++}
++
++@utility ps-nitro-safe-offset-* {
++    padding-inline-start: calc(env(nitro-safe-area-inset-left) + --spacing(--value(integer)));
++    padding-inline-start: calc(env(nitro-safe-area-inset-left) + --value([length], --spacing-*));
++
++    @variant rtl {
++        padding-inline-start: calc(env(nitro-safe-area-inset-right) + --spacing(--value(integer)));
++        padding-inline-start: calc(env(nitro-safe-area-inset-right) + --value([length], --spacing-*));
++    }
++}
++
++@utility pe-nitro-safe {
++    padding-inline-end: env(nitro-safe-area-inset-right);
++
++    @variant rtl {
++        padding-inline-end: env(nitro-safe-area-inset-left);
++    }
++}
++
++@utility pe-nitro-safe-or-* {
++    padding-inline-end: max(env(nitro-safe-area-inset-right), --spacing(--value(integer)));
++    padding-inline-end: max(env(nitro-safe-area-inset-right), --value([length], --spacing-*));
++
++    @variant rtl {
++        padding-inline-end: max(env(nitro-safe-area-inset-left), --spacing(--value(integer)));
++        padding-inline-end: max(env(nitro-safe-area-inset-left), --value([length], --spacing-*));
++    }
++}
++
++@utility pe-nitro-safe-offset-* {
++    padding-inline-end: calc(env(nitro-safe-area-inset-right) + --spacing(--value(integer)));
++    padding-inline-end: calc(env(nitro-safe-area-inset-right) + --value([length], --spacing-*));
++
++    @variant rtl {
++        padding-inline-end: calc(env(nitro-safe-area-inset-left) + --spacing(--value(integer)));
++        padding-inline-end: calc(env(nitro-safe-area-inset-left) + --value([length], --spacing-*));
++    }
++}
++
++@utility inset-nitro-safe {
++    top: env(nitro-safe-area-inset-top);
++    bottom: env(nitro-safe-area-inset-bottom);
++    left: env(nitro-safe-area-inset-left);
++    right: env(nitro-safe-area-inset-right);
++}
++
++@utility inset-nitro-safe-or-* {
++    top: max(env(nitro-safe-area-inset-top), --spacing(--value(integer)));
++    top: max(env(nitro-safe-area-inset-top), --value([length], --spacing-*));
++    bottom: max(env(nitro-safe-area-inset-bottom), --spacing(--value(integer)));
++    bottom: max(env(nitro-safe-area-inset-bottom), --value([length], --spacing-*));
++    left: max(env(nitro-safe-area-inset-left), --spacing(--value(integer)));
++    left: max(env(nitro-safe-area-inset-left), --value([length], --spacing-*));
++    right: max(env(nitro-safe-area-inset-right), --spacing(--value(integer)));
++    right: max(env(nitro-safe-area-inset-right), --value([length], --spacing-*));
++}
++
++@utility inset-nitro-safe-offset-* {
++    top: calc(env(nitro-safe-area-inset-top) + --spacing(--value(integer)));
++    top: calc(env(nitro-safe-area-inset-top) + --value([length], --spacing-*));
++    bottom: calc(env(nitro-safe-area-inset-bottom) + --spacing(--value(integer)));
++    bottom: calc(env(nitro-safe-area-inset-bottom) + --value([length], --spacing-*));
++    left: calc(env(nitro-safe-area-inset-left) + --spacing(--value(integer)));
++    left: calc(env(nitro-safe-area-inset-left) + --value([length], --spacing-*));
++    right: calc(env(nitro-safe-area-inset-right) + --spacing(--value(integer)));
++    right: calc(env(nitro-safe-area-inset-right) + --value([length], --spacing-*));
++}
++
++@utility x-nitro-safe {
++    left: env(nitro-safe-area-inset-left);
++    right: env(nitro-safe-area-inset-right);
++}
++
++@utility x-nitro-safe-or-* {
++    left: max(env(nitro-safe-area-inset-left), --spacing(--value(integer)));
++    left: max(env(nitro-safe-area-inset-left), --value([length], --spacing-*));
++    right: max(env(nitro-safe-area-inset-right), --spacing(--value(integer)));
++    right: max(env(nitro-safe-area-inset-right), --value([length], --spacing-*));
++}
++
++@utility x-nitro-safe-offset-* {
++    left: calc(env(nitro-safe-area-inset-left) + --spacing(--value(integer)));
++    left: calc(env(nitro-safe-area-inset-left) + --value([length], --spacing-*));
++    right: calc(env(nitro-safe-area-inset-right) + --spacing(--value(integer)));
++    right: calc(env(nitro-safe-area-inset-right) + --value([length], --spacing-*));
++}
++
++@utility y-nitro-safe {
++    top: env(nitro-safe-area-inset-top);
++    bottom: env(nitro-safe-area-inset-bottom);
++}
++
++@utility y-nitro-safe-or-* {
++    top: max(env(nitro-safe-area-inset-top), --spacing(--value(integer)));
++    top: max(env(nitro-safe-area-inset-top), --value([length], --spacing-*));
++    bottom: max(env(nitro-safe-area-inset-bottom), --spacing(--value(integer)));
++    bottom: max(env(nitro-safe-area-inset-bottom), --value([length], --spacing-*));
++}
++
++@utility y-nitro-safe-offset-* {
++    top: calc(env(nitro-safe-area-inset-top) + --spacing(--value(integer)));
++    top: calc(env(nitro-safe-area-inset-top) + --value([length], --spacing-*));
++    bottom: calc(env(nitro-safe-area-inset-bottom) + --spacing(--value(integer)));
++    bottom: calc(env(nitro-safe-area-inset-bottom) + --value([length], --spacing-*));
++}
++
++@utility top-nitro-safe {
++    top: env(nitro-safe-area-inset-top);
++}
++
++@utility top-nitro-safe-or-* {
++    top: max(env(nitro-safe-area-inset-top), --spacing(--value(integer)));
++    top: max(env(nitro-safe-area-inset-top), --value([length], --spacing-*));
++}
++
++@utility top-nitro-safe-offset-* {
++    top: calc(env(nitro-safe-area-inset-top) + --spacing(--value(integer)));
++    top: calc(env(nitro-safe-area-inset-top) + --value([length], --spacing-*));
++}
++
++@utility bottom-nitro-safe {
++    bottom: env(nitro-safe-area-inset-bottom);
++}
++
++@utility bottom-nitro-safe-or-* {
++    bottom: max(env(nitro-safe-area-inset-bottom), --spacing(--value(integer)));
++    bottom: max(env(nitro-safe-area-inset-bottom), --value([length], --spacing-*));
++}
++
++@utility bottom-nitro-safe-offset-* {
++    bottom: calc(env(nitro-safe-area-inset-bottom) + --spacing(--value(integer)));
++    bottom: calc(env(nitro-safe-area-inset-bottom) + --value([length], --spacing-*));
++}
++
++@utility left-nitro-safe {
++    left: env(nitro-safe-area-inset-left);
++}
++
++@utility left-nitro-safe-or-* {
++    left: max(env(nitro-safe-area-inset-left), --spacing(--value(integer)));
++    left: max(env(nitro-safe-area-inset-left), --value([length], --spacing-*));
++}
++
++@utility left-nitro-safe-offset-* {
++    left: calc(env(nitro-safe-area-inset-left) + --spacing(--value(integer)));
++    left: calc(env(nitro-safe-area-inset-left) + --value([length], --spacing-*));
++}
++
++@utility right-nitro-safe {
++    right: env(nitro-safe-area-inset-right);
++}
++
++@utility right-nitro-safe-or-* {
++    right: max(env(nitro-safe-area-inset-right), --spacing(--value(integer)));
++    right: max(env(nitro-safe-area-inset-right), --value([length], --spacing-*));
++}
++
++@utility right-nitro-safe-offset-* {
++    right: calc(env(nitro-safe-area-inset-right) + --spacing(--value(integer)));
++    right: calc(env(nitro-safe-area-inset-right) + --value([length], --spacing-*));
++}
++
++@utility start-nitro-safe {
++    inset-inline-start: env(nitro-safe-area-inset-left);
++
++    @variant rtl {
++        inset-inline-start: env(nitro-safe-area-inset-right);
++    }
++}
++
++@utility start-nitro-safe-or-* {
++    inset-inline-start: max(env(nitro-safe-area-inset-left), --spacing(--value(integer)));
++    inset-inline-start: max(env(nitro-safe-area-inset-left), --value([length], --spacing-*));
++
++    @variant rtl {
++        inset-inline-start: max(env(nitro-safe-area-inset-right), --spacing(--value(integer)));
++        inset-inline-start: max(env(nitro-safe-area-inset-right), --value([length], --spacing-*));
++    }
++}
++
++@utility start-nitro-safe-offset-* {
++    inset-inline-start: calc(env(nitro-safe-area-inset-left) + --spacing(--value(integer)));
++    inset-inline-start: calc(env(nitro-safe-area-inset-left) + --value([length], --spacing-*));
++
++    @variant rtl {
++        inset-inline-start: calc(env(nitro-safe-area-inset-right) + --spacing(--value(integer)));
++        inset-inline-start: calc(env(nitro-safe-area-inset-right) + --value([length], --spacing-*));
++    }
++}
++
++@utility end-nitro-safe {
++    inset-inline-end: env(nitro-safe-area-inset-right);
++
++    @variant rtl {
++        inset-inline-end: env(nitro-safe-area-inset-left);
++    }
++}
++
++@utility end-nitro-safe-or-* {
++    inset-inline-end: max(env(nitro-safe-area-inset-right), --spacing(--value(integer)));
++    inset-inline-end: max(env(nitro-safe-area-inset-right), --value([length], --spacing-*));
++
++    @variant rtl {
++        inset-inline-end: max(env(nitro-safe-area-inset-left), --spacing(--value(integer)));
++        inset-inline-end: max(env(nitro-safe-area-inset-left), --value([length], --spacing-*));
++    }
++}
++
++@utility end-nitro-safe-offset-* {
++    inset-inline-end: calc(env(nitro-safe-area-inset-right) + --spacing(--value(integer)));
++    inset-inline-end: calc(env(nitro-safe-area-inset-right) + --value([length], --spacing-*));
++
++    @variant rtl {
++        inset-inline-end: calc(env(nitro-safe-area-inset-left) + --spacing(--value(integer)));
++        inset-inline-end: calc(env(nitro-safe-area-inset-left) + --value([length], --spacing-*));
++    }
++}
++
++@custom-variant disabled {
++    &:disabled {
++        @slot;
++    }
++
++    &[aria-disabled="true"] {
++        @slot;
++    }
++
++    &[readonly] {
++        @slot;
++    }
++}
++
++@utility border-continuous {
++  border-curve: continuous;
++}
++
++@utility border-circular {
++  border-curve: circular;
++}
++
++@custom-variant light {
++   &:where(.light, .light *) {
++       @slot;
++   }
++
++   @media (prefers-color-scheme: light) {
++       &:not(:where(.light, .light *, .dark, .dark *)) {
++           @slot;
++       }
++   }
++}
++
++@custom-variant dark {
++   &:where(.dark, .dark *) {
++       @slot;
++   }
++
++   @media (prefers-color-scheme: dark) {
++       &:not(:where(.light, .light *, .dark, .dark *)) {
++           @slot;
++       }
++   }
++}

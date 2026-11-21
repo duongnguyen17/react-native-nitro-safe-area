@@ -394,8 +394,13 @@ export function useWindowInsets(): EdgeInsets {
  * Minimal interface definition for Uniwind runtime compatibility.
  */
 export interface UniwindLike {
-  /** Updates the runtime insets in Uniwind's style store. */
+  /** Updates standard runtime insets in Uniwind's style store (`safe-offset`, `safe`, etc.). */
   updateInsets: (insets: EdgeInsets) => void;
+  /**
+   * Updates nitro content insets in Uniwind's style store (`nitro-safe-offset`, `nitro-safe`, etc.)
+   * when using patched Uniwind.
+   */
+  updateNitroInsets?: (insets: EdgeInsets) => void;
   /** Optional theme CSS variables update handler. */
   updateCSSVariables?: (theme: any, variables: any) => void;
 }
@@ -475,22 +480,37 @@ export function syncWithUniwind(
     NitroSafeArea.setAdaptiveNavigationEnabled(true);
   }
 
-  const getInsets = () =>
-    options?.useWindowInsets ? getWindowInsets() : getContentInsets();
+  const hasNitro = typeof uniwind.updateNitroInsets === 'function';
+
+  const sync = (insets: EdgeInsets, contentInsets: EdgeInsets) => {
+    if (hasNitro) {
+      uniwind.updateNitroInsets!(
+        options?.useWindowInsets ? insets : contentInsets
+      );
+      uniwind.updateInsets(insets);
+    } else {
+      uniwind.updateInsets(options?.useWindowInsets ? insets : contentInsets);
+    }
+  };
 
   // Frame 0 synchronous update — zero flash / zero layout shift!
-  const initial = getInsets();
-  uniwind.updateInsets(initial);
-  let lastInsets = initial;
+  const initialMetrics = NitroSafeArea.getSafeArea();
+  sync(initialMetrics.insets, initialMetrics.contentInsets);
+  let lastInsets = initialMetrics.insets;
+  let lastContentInsets = initialMetrics.contentInsets;
 
   // Reactive listener for native changes (rotation, iPad sidebar toggle, etc.)
   return addOnSafeAreaChangedListener((metrics) => {
-    const next = options?.useWindowInsets
-      ? metrics.insets
-      : metrics.contentInsets;
-    if (!areInsetsEqual(lastInsets, next)) {
-      lastInsets = next;
-      uniwind.updateInsets(next);
+    const insetsChanged = !areInsetsEqual(lastInsets, metrics.insets);
+    const contentInsetsChanged = !areInsetsEqual(
+      lastContentInsets,
+      metrics.contentInsets
+    );
+
+    if (insetsChanged || contentInsetsChanged) {
+      lastInsets = metrics.insets;
+      lastContentInsets = metrics.contentInsets;
+      sync(metrics.insets, metrics.contentInsets);
     }
   });
 }

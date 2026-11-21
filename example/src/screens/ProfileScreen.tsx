@@ -14,14 +14,15 @@ export const ProfileScreen = () => {
   return (
     <View className="flex-1 bg-white">
       {/* 
-        ⚡ Powered by @2security/nitro-safe-area + Uniwind:
-        - pt-safe-offset-2: Insets + 8pt offset for clean header breathing room below navigation bar/capsule.
-        - px-safe-offset-5: Adapts to iPad Leftside Sidebar (320pt + 20pt) or standard margins (20pt).
-        - pb-safe-offset-5: Insets + 20pt for bottom home bar or iPhone tab bar.
+        ⚡ Powered by @2security/nitro-safe-area + Uniwind (Patched):
+        - pt-nitro-safe-offset-2: Content insets + 8pt offset for clean header breathing room below navigation bar/capsule.
+        - px-nitro-safe-offset-5: Adapts to iPad Leftside Sidebar (320pt + 20pt) or standard margins (20pt).
+        - pb-nitro-safe-offset-5: Content insets + 20pt for bottom home bar or iPhone tab bar.
+        * Note: Standard Uniwind classes (e.g. pt-safe-offset-*, pb-safe-offset-*) remain untouched for physical window insets!
       */}
       <ScrollView
         className="flex-1"
-        contentContainerClassName="pt-safe-offset-2 pb-safe-offset-5 px-safe-offset-5"
+        contentContainerClassName="pt-nitro-safe-offset-2 pb-nitro-safe-offset-5 px-nitro-safe-offset-5"
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}

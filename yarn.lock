@@ -23,6 +23,7 @@ __metadata:
     "@react-navigation/bottom-tabs": "npm:^7.21.0"
     "@react-navigation/elements": "npm:^2.9.45"
     "@react-navigation/native": "npm:^7.5.1"
+    "@react-navigation/native-stack": "npm:^7.2.0"
     "@types/react": "npm:^19.2.0"
     react: "npm:19.3.0"
     react-native: "npm:0.88.0"
@@ -34,7 +35,7 @@ __metadata:
     react-native-screens: "npm:^4.30.1"
     react-native-worklets: "npm:^0.14.0"
     tailwindcss: "npm:^4.0.0"
-    uniwind: "npm:^1.14.0"
+    uniwind: "patch:uniwind@npm%3A1.14.0#~/patches/uniwind+1.14.0.patch"
   languageName: unknown
   linkType: soft
 
@@ -2515,6 +2516,23 @@ __metadata:
     "@react-native-masked-view/masked-view":
       optional: true
   checksum: 10c0/a43f48b92c9bf540d28c579c8f6e6926828428deb6cb71886613bb30a471cb8583a2ecb1efb70bfe56b4c97236fac1d9c78a052f5d9c1ad60150223a24346db2
+  languageName: node
+  linkType: hard
+
+"@react-navigation/native-stack@npm:^7.2.0":
+  version: 7.21.1
+  resolution: "@react-navigation/native-stack@npm:7.21.1"
+  dependencies:
+    "@react-navigation/elements": "npm:^2.9.46"
+    color: "npm:^4.2.3"
+    sf-symbols-typescript: "npm:^2.1.0"
+  peerDependencies:
+    "@react-navigation/native": ^7.5.2
+    react: ">= 18.2.0"
+    react-native: "*"
+    react-native-safe-area-context: ">= 4.0.0"
+    react-native-screens: ">= 4.0.0"
+  checksum: 10c0/35cb040ad2bb23935c01094ccdb6b4d3245c9fbfa6d8561d3f8ce8aafe6f22e3d8c19bd3afa5b7425085d97716e48d139210c3d50a0b8c95dcadf91f9e15056e
   languageName: node
   linkType: hard
 
@@ -9021,7 +9039,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"uniwind@npm:^1.14.0":
+"uniwind@npm:1.14.0":
   version: 1.14.0
   resolution: "uniwind@npm:1.14.0"
   dependencies:
@@ -9045,6 +9063,33 @@ __metadata:
   bin:
     uniwind: dist/cli/index.mjs
   checksum: 10c0/73c614c8eac32681dbfb0f991781ef0caa2dd0e310398b5cfff9575e8c61268a316060091790b3da98c14070b7ce6aff630592be10bb8325501417f768a6b7d1
+  languageName: node
+  linkType: hard
+
+"uniwind@patch:uniwind@npm%3A1.14.0#~/patches/uniwind+1.14.0.patch":
+  version: 1.14.0
+  resolution: "uniwind@patch:uniwind@npm%3A1.14.0#~/patches/uniwind+1.14.0.patch::version=1.14.0&hash=dd5a58"
+  dependencies:
+    "@tailwindcss/node": "npm:4.3.3"
+    "@tailwindcss/oxide": "npm:4.3.3"
+    culori: "npm:4.0.2"
+    lightningcss: "npm:1.30.1"
+  peerDependencies:
+    "@expo/metro-config": "*"
+    metro: "*"
+    metro-cache: "*"
+    metro-transform-worker: "*"
+    react: ">=19.0.0"
+    react-native: ">=0.81.0"
+    tailwindcss: ">=4"
+  peerDependenciesMeta:
+    "@expo/metro-config":
+      optional: true
+    metro-transform-worker:
+      optional: true
+  bin:
+    uniwind: dist/cli/index.mjs
+  checksum: 10c0/0c20d93b9b2f0d54d80b44f4a256997322727d7d18ea0cb27ec4e64767699a72ddaa657d0501c9f6995c2432526bc989b858b7e5afc7c3259776a59ed5cee425
   languageName: node
   linkType: hard
 

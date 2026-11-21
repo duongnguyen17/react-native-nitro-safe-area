@@ -1,5 +1,6 @@
 import { useSafeAreaMetrics } from '@2security/nitro-safe-area';
 import { useState } from 'react';
+import { useNavigation } from '@react-navigation/native';
 import {
   Platform,
   ScrollView,
@@ -17,6 +18,7 @@ import { useRenderCount } from '../hooks/useRenderCount';
 const transition = LinearTransition.duration(300);
 
 export const ExploreScreen = () => {
+  const navigation = useNavigation<any>();
   const metrics = useSafeAreaMetrics();
   const renderCount = useRenderCount();
   const [expandedCard, setExpandedCard] = useState<number | null>(null);
@@ -43,14 +45,15 @@ export const ExploreScreen = () => {
   return (
     <View className="flex-1 bg-white">
       {/* 
-        ⚡ Powered by @2security/nitro-safe-area + Uniwind:
-        - pt-safe-offset-2: Insets + 8pt offset for clean header breathing room below navigation bar/capsule.
-        - px-safe-offset-5: Adapts to iPad Leftside Sidebar (320pt + 20pt) or standard margins (20pt).
-        - pb-safe-offset-5: Insets + 20pt for bottom home bar or iPhone tab bar.
+        ⚡ Powered by @2security/nitro-safe-area + Uniwind (Patched):
+        - pt-nitro-safe-offset-2: Content insets + 8pt offset for clean header breathing room below navigation bar/capsule.
+        - px-nitro-safe-offset-5: Adapts to iPad Leftside Sidebar (320pt + 20pt) or standard margins (20pt).
+        - pb-nitro-safe-offset-5: Content insets + 20pt for bottom home bar or iPhone tab bar.
+        * Note: Standard Uniwind classes (e.g. pt-safe-offset-*, pb-safe-offset-*) remain untouched for physical window insets!
       */}
       <ScrollView
         className="flex-1"
-        contentContainerClassName="pt-safe-offset-2 pb-safe-offset-5 px-safe-offset-5"
+        contentContainerClassName="pt-nitro-safe-offset-2 pb-nitro-safe-offset-5 px-nitro-safe-offset-5"
         showsVerticalScrollIndicator={false}
       >
         {/* Real-time Nitro Safe Area Inspector Card */}
@@ -120,7 +123,7 @@ export const ExploreScreen = () => {
         </Animated.View>
 
         {/* Hero Title Section */}
-        <Animated.View layout={transition} className="mb-6">
+        <Animated.View layout={transition} className="mb-4">
           <Text className="text-slate-900 text-2xl font-extrabold tracking-tight">
             Safe Area Showcase
           </Text>
@@ -128,6 +131,42 @@ export const ExploreScreen = () => {
             Demonstrating synchronous Frame 0 layout and iPadOS 18 adaptive
             navigation support.
           </Text>
+        </Animated.View>
+
+        {/* Navigation to Stack Screen Demo CTA */}
+        <Animated.View
+          layout={transition}
+          className="bg-sky-50 rounded-2xl p-4 mb-4 border border-sky-200 shadow-sm"
+        >
+          <View className="flex-row items-center justify-between mb-2">
+            <View className="flex-row items-center">
+              <Text className="text-xl mr-2">🚀</Text>
+              <Text className="text-sky-950 font-bold text-sm">
+                Stack Screen Demo (No Tab Bar)
+              </Text>
+            </View>
+            <View className="bg-sky-200 px-2 py-0.5 rounded-full">
+              <Text className="text-sky-900 font-bold text-[10px]">
+                Uniwind safe
+              </Text>
+            </View>
+          </View>
+          <Text className="text-sky-800 text-xs mb-3 leading-relaxed">
+            Navigate to a push screen on the root stack without the Bottom Tab
+            Bar. Demonstrates standard Uniwind{' '}
+            <Text className="font-mono font-bold">safe-offset</Text> for
+            physical window insets.
+          </Text>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => navigation.navigate('Details')}
+            className="bg-sky-600 active:bg-sky-700 py-2.5 px-4 rounded-xl items-center flex-row justify-center shadow-sm"
+          >
+            <Text className="text-white font-bold text-sm mr-1">
+              Open Stack Screen
+            </Text>
+            <Text className="text-white font-bold text-sm">→</Text>
+          </TouchableOpacity>
         </Animated.View>
 
         {/* Feature Cards with Animated Layout */}
