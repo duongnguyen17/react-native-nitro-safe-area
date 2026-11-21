@@ -26,6 +26,10 @@ apply from: '../nitrogen/generated/android/nitrosafearea+autolinking.gradle'
 
 apply plugin: "com.facebook.react"
 
+react {
+  jsRootDir = file("../src")
+}
+
 android {
   namespace "com.margelo.nitro.nitrosafearea"
 

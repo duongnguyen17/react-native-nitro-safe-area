@@ -94,6 +94,14 @@
     "react-native": "*",
     "react-native-nitro-modules": "^0.37.2"
   },
+  "codegenConfig": {
+    "name": "NitroSafeAreaSpec",
+    "type": "modules",
+    "jsSrcsDir": "./src",
+    "android": {
+      "javaPackageName": "com.margelo.nitro.nitrosafearea"
+    }
+  },
   "workspaces": [
     "example"
   ],

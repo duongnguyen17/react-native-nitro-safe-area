@@ -70,8 +70,24 @@ public class HybridNitroSafeArea: HybridNitroSafeAreaSpec {
   // MARK: - Metrics Calculation
 
   private func calculateMetrics() -> SafeAreaMetrics {
+    #if DEBUG
+    dispatchPrecondition(condition: .onQueue(.main))
+    #endif
+
     guard let window = getKeyWindow() else {
-      let isLandscape = UIScreen.main.bounds.width > UIScreen.main.bounds.height
+      var screenBounds: CGRect = .zero
+      if #available(iOS 13.0, *) {
+        for scene in UIApplication.shared.connectedScenes {
+          if let windowScene = scene as? UIWindowScene {
+            screenBounds = windowScene.screen.bounds
+            break
+          }
+        }
+      }
+      if screenBounds == .zero {
+        screenBounds = UIScreen.main.bounds
+      }
+      let isLandscape = screenBounds.width > screenBounds.height
       let orientation: DeviceOrientation = isLandscape ? .landscape : .portrait
       let empty = EdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
       return SafeAreaMetrics(
@@ -137,10 +153,16 @@ public class HybridNitroSafeArea: HybridNitroSafeAreaSpec {
           }
 
           if !tabVC.sidebar.isHidden {
-            // iPad Leftside Sidebar mode: sidebar overlays left ~320pt,
+            // iPad Leftside Sidebar mode: sidebar overlays left (~320pt standard or measured),
             // so contentLeft is set to sidebarWidth to push content out (pl-safe / px-safe)
             mode = .ipadLeftSidebar
-            sidebarWidth = 320.0
+            var measuredWidth: Double = 320.0
+            if let sidebarView = tabVC.view.subviews.first(where: {
+              String(describing: type(of: $0)).contains("Sidebar")
+            }), sidebarView.frame.width > 0 {
+              measuredWidth = Double(sidebarView.frame.width)
+            }
+            sidebarWidth = measuredWidth
             contentLeft = sidebarWidth
             contentTop = Double(windowInsets.top)
           } else {

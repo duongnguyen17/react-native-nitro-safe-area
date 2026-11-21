@@ -1,6 +1,12 @@
 import { useSafeAreaMetrics } from '@2security/nitro-safe-area';
 import { useState } from 'react';
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import {
+  Platform,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import Animated, { LinearTransition } from 'react-native-reanimated';
 import { useRenderCount } from '../hooks/useRenderCount';
 
@@ -14,7 +20,9 @@ export const ExploreScreen = () => {
   const getModeLabel = () => {
     switch (metrics.mode) {
       case 'iphone_bottom_tab':
-        return '📱 iPhone (Native Bottom Tab)';
+        return Platform.OS === 'android'
+          ? '📱 Android (Native Bottom Tab)'
+          : '📱 iPhone (Native Bottom Tab)';
       case 'ipad_top_capsule':
         return '💊 iPad (Floating Top Capsule)';
       case 'ipad_left_sidebar':

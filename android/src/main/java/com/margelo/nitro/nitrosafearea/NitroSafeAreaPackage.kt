@@ -1,18 +1,19 @@
 package com.margelo.nitro.nitrosafearea
 
-import com.facebook.react.BaseReactPackage
+import com.facebook.react.ReactPackage
 import com.facebook.react.bridge.NativeModule
 import com.facebook.react.bridge.ReactApplicationContext
-import com.facebook.react.module.model.ReactModuleInfoProvider
+import com.facebook.react.uimanager.ViewManager
 
-class NitroSafeAreaPackage : BaseReactPackage() {
-  override fun getModule(name: String, reactContext: ReactApplicationContext): NativeModule? {
-    HybridNitroSafeArea.reactContext = reactContext
-    return null
+class NitroSafeAreaPackage : ReactPackage {
+  @Suppress("DEPRECATION")
+  override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> {
+    HybridNitroSafeArea.setContext(reactContext)
+    return emptyList()
   }
 
-  override fun getReactModuleInfoProvider(): ReactModuleInfoProvider {
-    return ReactModuleInfoProvider { emptyMap() }
+  override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> {
+    return emptyList()
   }
 
   companion object {
