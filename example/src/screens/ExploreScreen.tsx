@@ -46,11 +46,12 @@ export const ExploreScreen = () => {
           layout={transition}
           className="bg-slate-50 rounded-2xl p-4 mb-5 border border-slate-200 shadow-sm"
         >
-          <View className="flex-row items-center justify-between mb-2">
+          {/* Header Row: Title & Status Badges */}
+          <View className="flex-col gap-y-2 xl:flex-row xl:items-center xl:justify-between mb-3">
             <Text className="text-sky-600 font-bold text-xs uppercase tracking-wider">
               ⚡ Nitro Safe Area + Uniwind
             </Text>
-            <View className="flex-row items-center gap-1.5">
+            <View className="flex-row items-center gap-1.5 flex-wrap">
               <View className="bg-amber-100 px-2 py-0.5 rounded-full border border-amber-300">
                 <Text className="text-amber-800 text-[10px] font-bold">
                   Render #{renderCount}
@@ -64,24 +65,19 @@ export const ExploreScreen = () => {
             </View>
           </View>
 
-          <View className="flex-row items-center justify-between mb-1">
+          {/* Mode & Orientation */}
+          <View className="flex-col gap-y-1 xl:flex-row xl:items-center xl:justify-between mb-3">
             <Text className="text-slate-800 font-semibold text-xs">
               Current Mode:{' '}
               <Text className="text-sky-600 font-bold">{getModeLabel()}</Text>
             </Text>
             <Text className="text-slate-500 text-xs">
-              Renders:{' '}
-              <Text className="font-mono font-bold text-amber-700">
-                {renderCount}
+              Orientation:{' '}
+              <Text className="text-slate-900 font-mono font-bold">
+                {metrics.orientation.toUpperCase()}
               </Text>
             </Text>
           </View>
-          <Text className="text-slate-500 text-xs mb-3">
-            Orientation:{' '}
-            <Text className="text-slate-900 font-mono font-bold">
-              {metrics.orientation.toUpperCase()}
-            </Text>
-          </Text>
 
           <View className="grid grid-cols-2 gap-2 bg-white p-3 rounded-xl border border-slate-200">
             <View className="flex-row justify-between py-0.5">

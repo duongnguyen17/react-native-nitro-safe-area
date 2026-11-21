@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { createNativeBottomTabNavigator } from '@react-navigation/bottom-tabs/unstable';
+import { useBreakpoint } from '../hooks/useBreakpoint';
 import { ExploreScreen } from '../screens/ExploreScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 
@@ -11,6 +12,8 @@ export type RootTabParamList = {
 const Tabs = createNativeBottomTabNavigator<RootTabParamList>();
 
 export const BottomTabNavigator = () => {
+  const isSidebar = useBreakpoint('2xl');
+
   const renderExploreTabIcon = useCallback(
     ({ focused }: { focused: boolean }) => ({
       type: 'sfSymbol' as const,
@@ -35,7 +38,7 @@ export const BottomTabNavigator = () => {
         tabBarLabelVisibilityMode: 'labeled',
         tabBarActiveTintColor: '#0284c7',
         tabBarInactiveTintColor: '#64748b',
-        tabBarControllerMode: 'tabSidebar',
+        tabBarControllerMode: isSidebar ? 'tabSidebar' : 'tabBar',
       }}
     >
       <Tabs.Screen
