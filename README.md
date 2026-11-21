@@ -4,28 +4,60 @@
 [![npm downloads](https://img.shields.io/npm/dm/@2security%2Fnitro-safe-area.svg)](https://www.npmjs.com/package/@2security/nitro-safe-area)
 [![MIT License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-An ultra-fast, zero-frame-lag Safe Area & Adaptive Navigation Insets library for React Native built with Nitro Modules, delivering synchronous C++/JSI insets lookup, iPadOS 18 adaptive dual-mode navigation (Sidebar & Top Floating Capsule), and seamless Uniwind / Tailwind CSS variable injection with zero layout shift.
+An ultra-high-performance, **zero-frame-latency** Safe Area & Adaptive Navigation Insets library for React Native built with **Nitro Modules**. Delivers synchronous C++/JSI insets lookup, automatic native bottom tab detection across iOS and Android, iPadOS 18 adaptive navigation (Leftside Sidebar & Top Floating Capsule), and seamless Uniwind / Tailwind CSS v4 variable synchronization with **zero layout shifts**.
 
-## 📱 Preview
+---
 
-| iPad Leftside Sidebar (Landscape) | iPad Floating Top Capsule (Portrait) |
-| :---: | :---: |
-| <img src="./assets/ipad_left_sidebar.png" width="400" /> | <img src="./assets/ipad_top_capsule.png" width="400" /> |
+## 📱 Previews
 
-<!-- Demo Video Placeholder: To be added -->
+| iPad Leftside Sidebar (~320pt) | iPad Floating Top Capsule (~88pt) | Android Camera Cutout (Landscape) |
+| :---: | :---: | :---: |
+| <img src="./assets/ipad_left_sidebar.png" width="280" /> | <img src="./assets/ipad_top_capsule.png" width="280" /> | <img src="./assets/android_landscape.png" width="280" /> |
+
+---
+
+## ⚡ Why @2security/nitro-safe-area?
+
+### The 1-Frame Layout Shift Problem
+
+Traditional safe area libraries (such as `react-native-safe-area-context`) rely on asynchronous native view events over the React Native bridge:
+1. When your app launches, safe area insets default to `0px` for the first 1–2 frames.
+2. The UI renders flush against the top/bottom hardware borders.
+3. Once the asynchronous bridge message resolves, state updates to the real insets (e.g. `59px`), triggering an ugly, visible layout shift or white flash.
+4. When combined with Tailwind CSS or Uniwind utilities, this causes elements to jump down abruptly.
+
+```
+Traditional Safe Area (Async Bridge):
+App Cold Launch ──> React Mount (Insets: 0px) ──> [Async Bridge Delay] ──> State Update (59px) ──> ⚠️ 1-Frame Jump / Flash!
+
+@2security/nitro-safe-area (Nitro JSI):
+App Cold Launch ──> Synchronous JSI Memory Read (Insets: 59px at 0ms) ──> Mount ──> ⚡ Frame 0 Pixel-Perfect!
+```
+
+---
 
 ## ✨ Features
 
-- ⚡ **Zero-Frame Shift (0ms JSI Sync)** - Synchronously query hardware and content insets at module evaluation time or Frame 0 via direct JSI memory dispatch, eliminating initial white flash or 1-frame jump.
-- 📑 **iPadOS 18 Adaptive Navigation** - Native inspection of `UITabBarController` hierarchy to handle dynamic transitions between the **Leftside Sidebar** (~320pt) and **Top Floating Capsule** (~88pt).
-- 📐 **True Content Insets** - Differentiates physical hardware `windowInsets` (notch, dynamic island, home bar) from semantic `contentInsets` (automatically padding for bottom tabs, floating capsules, and sidebars).
-- 🎨 **Uniwind & Tailwind CSS First-Class** - Seamlessly initializes `--safe-native-*` CSS variables into Uniwind `ScopedVariables` at root, enabling instant utility classes like `pt-(--safe-native-top)` without layout shift.
-- 🔄 **Real-Time Dynamic Orientation** - Seamlessly tracks device rotation, iPad Stage Manager, and Split View resizes via hardware KVO and native notifications with zero event bridge congestion.
-- 🚀 **High Performance Nitro Hybrid Object** - Built with Nitro Modules for direct C++/Swift/Kotlin invocation with microsecond latency and zero JSON serialization overhead.
-- 📱 **Cross-Platform Native Power** - Deep integration with iOS `UIWindow.safeAreaInsets` & `UITabBarController` and Android `WindowInsetsCompat` / Android 15 edge-to-edge.
-- 🧪 **Production Ready** - Fully typed TypeScript API, synchronous getters, reactive React hooks, and Bridgeless New Architecture native code.
+- ⚡ **Zero Frame Shift (0ms JSI Sync)**: Direct synchronous memory lookup via JSI. Read hardware and content insets at Frame 0 or inside module scope, Zustand stores, or Redux reducers.
+- 📱 **Dual-Platform Native Bottom Tab Auto-Detection**:
+  - **iOS**: Inspects `UITabBarController`, adding native tab bar height to `contentInsets.bottom`.
+  - **Android**: Automatically detects `BottomNavigationView` / `NavigationBarView` in the view hierarchy, dynamically adjusting `contentInsets.bottom` (~104pt) so content is never covered by the overlay tab bar.
+  - **JS Tabs**: When using standard Flexbox tabs (e.g. `@react-navigation/bottom-tabs`), preserves system safe area (24pt) to prevent double padding.
+- 📐 **True Content Insets vs Window Insets**:
+  - `insets`: Pure physical hardware display insets (Notch, Dynamic Island, Home Bar, Camera Punch Holes).
+  - `contentInsets`: Semantic insets adjusted for active navigation Chrome (Bottom Tabs, iPad Sidebar, Top Capsule).
+- 📑 **iPadOS 18 Adaptive Navigation**: Real-time detection and transitions between **Leftside Sidebar** (~320pt) and **Top Floating Capsule** (~88pt) with cold-start Frame 0 prediction via `UserDefaults`.
+- 📷 **Edge-to-Edge & Camera Cutout Precision**:
+  - **Android**: Configures `LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES` and extracts `WindowInsetsCompat.Type.displayCutout()` so landscape punch holes are properly padded (`Left Inset = 54.1pt`).
+  - **iOS**: Adheres to Apple's **Symmetrical Gutter Principle** (`Left Inset == Right Inset == 62.0pt` on iPhone 16/18 Pro) for visual balance and muscle memory.
+- 🎨 **Uniwind & Tailwind CSS v4 First-Class**: Synchronously pushes insets into Uniwind's runtime store at Frame 0 via `syncWithUniwind(Uniwind)`. All utility classes (`pt-safe`, `pb-safe`, `px-safe-offset-5`, `pb-safe-offset-5`) work out of the box with zero component wrappers.
+- 🔄 **30ms Event Coalescing (Debounce)**: Coalesces rapid sequential hardware rotation events (orientation -> window bounds -> layoutSubviews) into a single atomic JavaScript update, eliminating redundant re-renders.
+- 🛡️ **Leak-Free Enterprise Architecture**:
+  - **Android**: `WeakReference<Activity>`, `ComponentCallbacks2` unregistration, and `LifecycleEventListener` cleanup on `onHostDestroy()`.
+  - **iOS**: Weak references for all observed UIViews and complete KVO token invalidation in `deinit`.
+  - **Multi-threaded Safety**: `@Volatile` variables in Kotlin, `NSLock` and `DispatchQueue.main.sync` with `Thread.isMainThread` guard in Swift.
 
-> **Note:** Requires React Native New Architecture with Bridgeless Mode enabled. For projects using Uniwind / Tailwind CSS v4, this library provides synchronous Frame 0 CSS variables, solving the classic issue where Tailwind safe area classes render at 0px before jumping.
+---
 
 ## 📦 Installation
 
@@ -35,93 +67,90 @@ npm install @2security/nitro-safe-area react-native-nitro-modules
 yarn add @2security/nitro-safe-area react-native-nitro-modules
 ```
 
-> **Note:** `react-native-nitro-modules` is required as this library relies on [Nitro Modules](https://nitro.margelo.com/) for native performance.
+> **Note:** Requires React Native New Architecture (Bridgeless / Fabric). Built on top of [Nitro Modules](https://nitro.margelo.com/).
 
-## 📱 Expo Usage
+### Expo Usage
 
-This library uses native code and **cannot** be used with Expo Go. You must use [Development Builds](https://docs.expo.dev/develop/development-builds/introduction/).
-
-### 1. Installation
+This library contains native Swift and Kotlin code and requires [Development Builds](https://docs.expo.dev/develop/development-builds/introduction/):
 
 ```sh
 npx expo install @2security/nitro-safe-area react-native-nitro-modules
-```
-
-### 2. Run with Development Build
-
-```sh
 npx expo run:ios
-# or
 npx expo run:android
 ```
 
-## 🚀 Quick Start
+---
 
-### 1. Synchronous Instant Insets (Zero Layout Shift)
+## 🚀 Usage Recipes & Solutions
 
-Query safe area and navigation metrics synchronously at 0ms—even before components mount or at module level:
+### 1. Synchronous Instant Read (Outside React Components)
+
+You can query safe area metrics synchronously at 0ms anywhere—even outside the React component lifecycle:
 
 ```typescript
 import { getSafeArea, getContentInsets, getWindowInsets } from '@2security/nitro-safe-area';
 
-// Returns synchronously in microsecond latency on JSI thread
+// Direct synchronous read via JSI (0ms latency)
 const metrics = getSafeArea();
 
-console.log(metrics.mode); // 'iphone_bottom_tab' | 'ipad_top_capsule' | 'ipad_left_sidebar' | 'none'
-console.log(metrics.contentInsets); // { top: 88, left: 0, bottom: 24, right: 0 }
-console.log(metrics.insets); // Raw OS window insets (notch, home bar)
-console.log(metrics.tabBarHeight); // 0 or native tab bar height
+console.log('Mode:', metrics.mode); // 'iphone_bottom_tab' | 'ipad_top_capsule' | 'ipad_left_sidebar' | 'none'
+console.log('Content Insets:', metrics.contentInsets); // { top: 54, left: 0, bottom: 104.4, right: 0 }
+console.log('Hardware Window Insets:', metrics.insets); // { top: 54, left: 0, bottom: 24, right: 0 }
+console.log('Orientation:', metrics.orientation); // 'portrait' | 'landscape'
 ```
 
-### 2. React Hooks (Synchronous Frame 0 + Reactive Updates)
+---
 
-Use reactive hooks that initialize synchronously on Frame 0 (no initial `0` state!) and update on rotation:
+### 2. High-Performance React Hooks (`useSyncExternalStore`)
+
+Hooks are powered by React Core's `useSyncExternalStore` with snapshot memoization. If non-relevant metrics change (e.g. orientation changes but content insets stay identical), React **completely skips re-rendering**:
 
 ```tsx
 import React from 'react';
 import { View, Text } from 'react-native';
-import { useContentInsets, useSafeAreaMetrics } from '@2security/nitro-safe-area';
+import { useSafeAreaMetrics, useContentInsets } from '@2security/nitro-safe-area';
 
 export const ScreenHeader = () => {
-  const contentInsets = useContentInsets();
+  const insets = useContentInsets();
   const { mode, orientation } = useSafeAreaMetrics();
 
   return (
     <View
       style={{
-        paddingTop: contentInsets.top,
-        paddingBottom: contentInsets.bottom,
-        paddingLeft: contentInsets.left,
-        paddingRight: contentInsets.right,
+        paddingTop: insets.top,
+        paddingBottom: insets.bottom,
+        paddingLeft: insets.left,
+        paddingRight: insets.right,
       }}
     >
-      <Text>Presentation: {mode}</Text>
+      <Text>Mode: {mode}</Text>
       <Text>Orientation: {orientation}</Text>
     </View>
   );
 };
 ```
 
-### 3. Uniwind / Tailwind CSS Integration (Zero-Boilerplate)
+---
 
-Normally, Uniwind Free requires `react-native-safe-area-context`'s `SafeAreaListener`, which suffers from asynchronous 1-frame lag and lacks iPadOS 18 adaptive navigation support.
+### 3. Uniwind & Tailwind CSS v4 Zero-Boilerplate Setup
 
-With `@2security/nitro-safe-area`, simply call `syncWithUniwind(Uniwind)` at bundle startup:
+With conventional libraries, Uniwind requires `<SafeAreaProvider>` and `<SafeAreaListener>`, which flash at 0px on startup. With `@2security/nitro-safe-area`, simply initialize it once in your `App.tsx`:
 
 ```tsx
-// App.tsx (or index.js)
+// App.tsx
 import { Uniwind } from 'uniwind';
 import { syncWithUniwind } from '@2security/nitro-safe-area';
+import { RootNavigator } from './navigation/RootNavigator';
 
-// ⚡ Frame 0 Synchronous JSI Sync — Zero flash, zero layout shift!
+// ⚡ Synchronize Frame 0 JSI insets directly into Uniwind runtime
 syncWithUniwind(Uniwind);
 
 export default function App() {
-  return <YourAppNavigation />;
+  return <RootNavigator />;
 }
 ```
 
-Now, all of Uniwind's built-in safe area utilities (`pt-safe`, `pb-safe`, `pl-safe`, `pr-safe`, `px-safe`, `p-safe`, `pt-safe-offset-*`, `px-safe-offset-*`) work out of the box with zero runtime overhead:
+Now, all standard Tailwind safe area utility classes work automatically everywhere:
 
 ```tsx
 import { View, Text, ScrollView } from 'react-native';
@@ -130,8 +159,9 @@ export const ShowcaseScreen = () => {
   return (
     <View className="flex-1 bg-white">
       {/* 
-        - Leftside Sidebar: px-safe-offset-5 automatically pushes content out past the 320pt sidebar.
-        - Top Capsule Tab: pt-safe-offset-10 pads list items below the 88pt capsule while content scrolls behind it.
+        - pt-safe-offset-10: Insets + 10pt offset for breathing room.
+        - px-safe-offset-5: Adapts to iPad Leftside Sidebar (320pt) or Android landscape cutouts (54pt).
+        - pb-safe-offset-5: Insets + 20pt for bottom home bar or native bottom tab bar.
       */}
       <ScrollView
         className="flex-1"
@@ -145,18 +175,51 @@ export const ShowcaseScreen = () => {
 };
 ```
 
-### 4. Smooth Layout Transitions with Reanimated
+---
 
-When switching between iPad modes (e.g. Leftside Sidebar 320pt ↔ Top Floating Capsule 88pt), wrap your components in `Animated.View` from `react-native-reanimated` with `LinearTransition` to achieve fluid, 60fps layout animations:
+### 4. Handling Bottom Tab Navigators (Native vs JS)
+
+In React Native navigation, there are two distinct layout paradigms for tab bars:
+
+```
+A) Native Bottom Tab (FrameLayout Overlay):
+┌─────────────────────────────────┐
+│ Screen Content (MATCH_PARENT)   │
+│                                 │
+│ ┌─────────────────────────────┐ │
+│ │ Native BottomNavigationView │ │ <── Overlays on top of content!
+│ └─────────────────────────────┘ │
+└─────────────────────────────────┘
+==> contentInsets.bottom MUST equal: max(windowInsets.bottom, tabBarHeight) (~104pt)
+
+B) JS Bottom Tab (Flexbox Column):
+┌─────────────────────────────────┐
+│ Screen Content (flex: 1)        │
+├─────────────────────────────────┤
+│ JS TabBar (Static Height)       │ <── TabBar pushes screen content up!
+└─────────────────────────────────┘
+==> contentInsets.bottom remains: windowInsets.bottom (24pt) to avoid double padding!
+```
+
+`@2security/nitro-safe-area` handles both paradigms **automatically**:
+- When using **Native Bottom Tabs** (`@react-navigation/bottom-tabs/unstable` with `react-native-screens`), the library detects `BottomNavigationView` / `NavigationBarView` and sets `contentInsets.bottom = 104.4pt`.
+- When using **JS Bottom Tabs** (`@react-navigation/bottom-tabs`), no native tab view is detected; `contentInsets.bottom` remains at the system safe area (`24.0pt`), allowing Flexbox to layout cleanly without double padding.
+
+---
+
+### 5. iPadOS 18 Adaptive Navigation with Fluid Animations
 
 ```tsx
 import Animated, { LinearTransition } from 'react-native-reanimated';
+import { useSafeAreaMetrics } from '@2security/nitro-safe-area';
 
-export const AdaptiveCard = ({ children }: { children: React.ReactNode }) => {
+export const AdaptiveContainer = ({ children }: { children: React.ReactNode }) => {
+  const { mode } = useSafeAreaMetrics();
+
   return (
     <Animated.View
-      layout={LinearTransition.duration(350)}
-      className="bg-white rounded-2xl p-4 shadow-sm"
+      layout={LinearTransition.duration(300)}
+      className="flex-1 bg-white"
     >
       {children}
     </Animated.View>
@@ -164,27 +227,28 @@ export const AdaptiveCard = ({ children }: { children: React.ReactNode }) => {
 };
 ```
 
-### 5. Native Bottom Tab & iPadOS 18 Adaptive Sidebar
+---
 
-Works out-of-the-box with native tab bar navigators (such as `@react-navigation/bottom-tabs` with native controllers or custom `UITabBarController`):
+## ⚖️ Cross-Platform Parity: iOS vs Android
 
-```tsx
-import { useSafeAreaMetrics } from '@2security/nitro-safe-area';
+Here is a comprehensive comparison of how safe area concepts and native features map across iOS and Android:
 
-export const AdaptiveNavigation = () => {
-  const { mode, sidebarWidth, topCapsuleHeight } = useSafeAreaMetrics();
+| Feature / Mechanism | iOS (Swift) | Android (Kotlin) | Parity Status |
+| :--- | :--- | :--- | :---: |
+| **Frame 0 Read** | Synchronous `DispatchQueue.main.sync` with `Thread.isMainThread` guard. | Synchronous JSI execution of `calculateMetrics()`. | ✅ **Identical** (0ms latency) |
+| **Event Coalescing** | 30ms debounce via `DispatchWorkItem` (cancel & replace). | 30ms debounce via `Handler(Looper.getMainLooper())`. | ✅ **Identical** (30ms atomic) |
+| **Deduplication** | Deep equality check via `metricsAreEqual()`. | Kotlin Data Class auto-generated `equals()` check. | ✅ **Identical** |
+| **Native Bottom Tab Detection** | Inspects `UITabBarController.tabBar` frame and visibility. | Recursive DFS view tree search for `BottomNavigationView` / `NavigationBarView` with `WeakReference` caching. | ✅ **Identical** (Auto-detected) |
+| **Tab Bar Height Compensation** | `contentInsets.bottom = max(window.bottom, tabBar.height)` (~83pt). | `contentInsets.bottom = max(window.bottom, tabBar.height)` (~104pt). | ✅ **Identical** |
+| **Animated Tab Bar (Scroll-to-Hide)** | KVO on `tabBar.isHidden` and `tabBar.frame`. | Dynamic detection of `translationY >= height * 0.5f`. | ✅ **Identical** |
+| **Landscape Cutout / Punch Hole** | **Symmetrical Gutter Principle**: Apple sets `left == right == 62.0pt` on iPhone 16/18 Pro for visual balance and muscle memory. | **Hardware-Accurate**: Android sets `left: 54.1pt, right: 0.0pt` to precisely match the punch hole location via `LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES`. | ✅ **Platform-Idiomatic** |
+| **Adaptive Sidebar Navigation** | iPadOS 18 `tabVC.sidebar.preferredLayout = .overlap` (`sidebarWidth = 320pt`). | Returns `mode: 'none'`, `sidebarWidth: 0` (Android tablets use standard navigation rails). | ✅ **Platform-Idiomatic** |
+| **Floating Top Capsule** | iPadOS 18 `tabBar.frame.origin.y` inspection (`topCapsuleHeight = 88pt`). | Returns `mode: 'none'`, `topCapsuleHeight: 0`. | ✅ **Platform-Idiomatic** |
+| **Memory & Lifecycle Safety** | `deinit` cleans up all KVO tokens and NotificationCenter observers; weak references for all UIViews. | `WeakReference<Activity>`, `ComponentCallbacks2` unregistration, and `LifecycleEventListener` cleanup on `onHostDestroy()`. | ✅ **Identical** (Zero leaks) |
+| **Thread Safety** | `NSLock` protecting shared listeners and last notified state; `@MainActor` considerations. | `@Volatile` variables on shared state (`attachedDecorView`, `lastNotifiedMetrics`) and `synchronized(lock)`. | ✅ **Identical** (Thread-safe) |
+| **Modern OS Standards** | Supports iOS 13 through iOS 18+; avoids deprecated `UIScreen.main`. | Supports Android 7.0 (API 24) through Android 15 (API 35); 16KB Page Size support. | ✅ **Identical** |
 
-  if (mode === 'ipad_left_sidebar') {
-    // iPad Landscape: Left sidebar is active (~320pt)
-    // Screen content automatically shifted to the right
-  } else if (mode === 'ipad_top_capsule') {
-    // iPad Portrait: Floating top capsule is active (~88pt)
-    // Screen content automatically padded from top to avoid header overlap
-  } else if (mode === 'iphone_bottom_tab') {
-    // iPhone: Standard bottom tab bar
-  }
-};
-```
+---
 
 ## 📚 API Reference
 
@@ -192,22 +256,22 @@ export const AdaptiveNavigation = () => {
 
 | Method | Parameters | Return Type | Description |
 | :--- | :--- | :--- | :--- |
-| `getSafeArea()` | `()` | `SafeAreaMetrics` | Synchronously returns full safe area & navigation metrics via JSI. |
-| `getContentInsets()` | `()` | `EdgeInsets` | Synchronously returns semantic insets adjusted for TabBar, iPad sidebar, or top capsule. |
-| `getWindowInsets()` | `()` | `EdgeInsets` | Synchronously returns physical hardware screen window insets. |
-| `addOnSafeAreaChangedListener()` | `(listener: (metrics: SafeAreaMetrics) => void)` | `() => void` | Listens for native rotation, sidebar toggle, or inset changes. Returns unregister function. |
-| `syncWithUniwind()` | `(uniwind: UniwindLike, options?: { useWindowInsets?: boolean })` | `() => void` | Synchronizes insets into Uniwind at Frame 0 and subscribes to native changes. |
+| `getSafeArea()` | `()` | `SafeAreaMetrics` | Synchronously returns full metrics via JSI (0ms latency). |
+| `getContentInsets()` | `()` | `EdgeInsets` | Synchronously returns insets adjusted for active navigation Chrome. |
+| `getWindowInsets()` | `()` | `EdgeInsets` | Synchronously returns raw physical hardware window insets. |
+| `addOnSafeAreaChangedListener()` | `(listener: (metrics: SafeAreaMetrics) => void)` | `() => void` | Subscribes to native safe area, orientation, or mode changes. Returns unsubscribe callback. |
+| `syncWithUniwind()` | `(uniwind: UniwindLike, options?: { useWindowInsets?: boolean })` | `() => void` | Synchronizes insets into Uniwind's runtime store at Frame 0 and subscribes to changes. |
 
 ---
 
-### Hooks
+### React Hooks
 
 | Hook | Return Type | Description |
 | :--- | :--- | :--- |
-| `useSafeAreaMetrics()` | `SafeAreaMetrics` | Initializes synchronously on Frame 0 and subscribes to native changes. |
-| `useContentInsets()` | `EdgeInsets` | Convenience hook returning current content insets. |
-| `useWindowInsets()` | `EdgeInsets` | Convenience hook returning raw hardware window insets. |
-| `useUniwindSafeArea()` | `void` | Automatically registers and synchronizes with Uniwind during component lifecycle. |
+| `useSafeAreaMetrics()` | `SafeAreaMetrics` | Synchronous Frame 0 read with reactive updates powered by `useSyncExternalStore`. |
+| `useContentInsets()` | `EdgeInsets` | Returns current content insets with snapshot memoization to avoid redundant re-renders. |
+| `useWindowInsets()` | `EdgeInsets` | Returns raw physical window insets with snapshot memoization. |
+| `useUniwindSafeArea()` | `void` | Automatically manages Uniwind synchronization during the host component lifecycle. |
 
 ---
 
@@ -217,9 +281,13 @@ export const AdaptiveNavigation = () => {
 
 ```typescript
 export interface EdgeInsets {
+  /** Top inset in density-independent pixels (pt on iOS, dp on Android). */
   top: number;
+  /** Left inset in density-independent pixels (pt on iOS, dp on Android). */
   left: number;
+  /** Bottom inset in density-independent pixels (pt on iOS, dp on Android). */
   bottom: number;
+  /** Right inset in density-independent pixels (pt on iOS, dp on Android). */
   right: number;
 }
 ```
@@ -228,10 +296,10 @@ export interface EdgeInsets {
 
 ```typescript
 export type NavigationMode =
-  | 'iphone_bottom_tab'   // iPhone with visible bottom tab bar
-  | 'ipad_top_capsule'    // iPadOS 18 top floating capsule header
-  | 'ipad_left_sidebar'   // iPadOS 18 left sidebar expanded
-  | 'none';               // Standard full-screen or hidden tab bar
+  | 'iphone_bottom_tab'   // iPhone bottom tab bar or Android Native BottomNavigationView
+  | 'ipad_top_capsule'    // iPadOS 18 top floating capsule header (~88pt)
+  | 'ipad_left_sidebar'   // iPadOS 18 left sidebar expanded (~320pt)
+  | 'none';               // Standard full-screen, JS tabs, or edge-to-edge
 ```
 
 #### `DeviceOrientation`
@@ -244,83 +312,68 @@ export type DeviceOrientation = 'portrait' | 'landscape';
 
 ```typescript
 export interface SafeAreaMetrics {
-  insets: EdgeInsets;          // Physical window insets (notch, home indicator)
-  contentInsets: EdgeInsets;   // Content insets adjusted for TabBar/Sidebar/Capsule
-  mode: NavigationMode;        // Current presentation mode
-  tabBarHeight: number;        // Height of bottom tab bar (0 if hidden/none)
-  topCapsuleHeight: number;    // Height of top floating capsule on iPad (0 if none)
-  sidebarWidth: number;        // Width of left sidebar on iPad (0 if none)
-  isTabBarHidden: boolean;     // Whether tab bar is hidden
+  /** Physical window safe area insets directly from the OS (Notch, punch hole, home bar). */
+  insets: EdgeInsets;
+
+  /** Content insets adjusted for active navigation Chrome (Bottom Tab, Sidebar, Top Capsule). */
+  contentInsets: EdgeInsets;
+
+  /** Current presentation mode. */
+  mode: NavigationMode;
+
+  /** Height of bottom tab bar in dp/pt (0 if hidden or none). */
+  tabBarHeight: number;
+
+  /** Height of top floating capsule on iPad (0 if none). */
+  topCapsuleHeight: number;
+
+  /** Width of left sidebar on iPad (0 if none). */
+  sidebarWidth: number;
+
+  /** Whether the bottom tab bar is currently hidden. */
+  isTabBarHidden: boolean;
+
+  /** Physical device orientation. */
   orientation: DeviceOrientation;
 }
 ```
 
-## 🎯 Advanced Architecture & The Problem
+---
 
-### The 1-Frame Layout Shift Problem
-
-In conventional React Native safe area solutions (such as `react-native-safe-area-context`):
-1. On initial mount, native views must mount, attach to the window, measure insets, and emit an asynchronous bridge event to JavaScript.
-2. For the first 1–2 frames, insets default to `0px`.
-3. The UI paints at the physical top/bottom edges of the screen, and then visibly snaps/shifts down once the asynchronous event arrives.
-4. When paired with CSS utility engines (like Uniwind / Tailwind CSS), this causes ugly flashes and jarring layout jumps.
-
-```
-Conventional safe-area:
-Native Init ──> React Mount ──[ Async Event Delay ]──> Bridge ──> Set State (0 -> 59px) ──> ⚠️ Layout Shift (Flicker!)
-
-@2security/nitro-safe-area:
-Native Init ──> C++ JSI Memory Bridge ──> Synchronous Insets (59px at 0ms) ──> ⚡ Zero Layout Shift (Frame 0 Perfect)
-```
-
-### iPadOS 18 Dual-Mode Navigation Chaos
-
-On iPadOS 18, Apple introduced a radically redesigned `UITabBarController`:
-- **Landscape Mode (Leftside Sidebar)**: The tab bar transforms into a **Leftside Sidebar** (~320pt wide). The library evaluates `contentInsets.left = 320pt` (`--safe-native-left`), allowing developers to push content safely to the right via `px-safe` or `pl-safe` without the sidebar overlaying or obscuring critical elements.
-- **Portrait & Collapsed Mode (Top Floating Capsule)**: The tab bar transforms into a **Top Floating Capsule** (~88pt tall) overlaid directly at the top center of the screen. The screen renders full-height behind the capsule, while `contentInsets.top = 88pt` allows developers to pad list content (`pt-safe`) safely below the capsule while enabling smooth scrolling underneath.
-
-Traditional safe area libraries only measure hardware insets (notch/bezel), completely ignoring `UITabBarController`'s floating capsule and sidebar. `@2security/nitro-safe-area` natively traverses the view hierarchy, identifies `UITabBarController`, and calculates exact semantic `contentInsets` automatically.
-
-### Feature Comparison
+## 🆚 Feature Comparison
 
 | Feature | `react-native-safe-area-context` | `@2security/nitro-safe-area` |
 | :--- | :---: | :---: |
-| **Initial Inset Latency** | Asynchronous (`0px` on Frame 0) | **Synchronous 0ms (Direct JSI Memory Dispatch)** |
-| **Layout Shift / Flicker** | ⚠️ Noticeable 1-frame jump | ⚡ **Zero Layout Shift** |
+| **Initial Inset Latency** | Asynchronous (`0px` on Frame 0) | ⚡ **Synchronous 0ms (Direct JSI Memory Dispatch)** |
+| **Layout Shift / Flicker** | ⚠️ Noticeable 1-frame jump | ⚡ **Zero Layout Shift (Frame 0 Pixel-Perfect)** |
 | **Bridge Overhead** | Event bridge serialization | 🚀 **Pure C++ / Swift / Kotlin Hybrid Object** |
-| **Native Bottom Tab Awareness** | Manual offset calculation | ✅ **Automatic Native TabBar Detection** |
-| **iPadOS 18 Sidebar Mode** | ❌ Raw insets only (Sidebar overlays content) | ✅ **Automatic Left Inset 320pt (Push content via `pl-safe`/`px-safe`)** |
+| **Native Bottom Tab Awareness** | ❌ Manual offset calculation | ✅ **Automatic Native TabBar Detection (iOS & Android)** |
+| **JS vs Native Tab Disambiguation** | ❌ Manual | ✅ **Automatic (Preserves 24pt for JS tabs, 104pt for native tabs)** |
+| **Android Landscape Cutout** | ❌ May collide with camera punch hole | ✅ **Automatic (`LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES`)** |
+| **iOS Landscape Notch Symmetry** | ✅ Standard | ✅ **Standard Apple Symmetrical Gutters** |
+| **iPadOS 18 Sidebar Mode** | ❌ Raw insets only (Sidebar overlays content) | ✅ **Automatic Left Inset ~320pt (`pl-safe` / `px-safe`)** |
 | **iPadOS 18 Top Capsule** | ❌ Overlays content headers | ✅ **Automatic Top Capsule Padding (~88pt)** |
-| **Uniwind / Tailwind CSS Ready** | Needs custom async wrappers | ✅ **Synchronous ScopedVariables Integration** |
-| **Dynamic Orientation Tracking** | Window resize events | ✅ **Native KVO & Hardware Event Listeners** |
+| **Uniwind / Tailwind CSS v4** | Needs custom async wrappers | ✅ **Synchronous `syncWithUniwind(Uniwind)`** |
+| **Orientation Tracking** | Window resize events | ✅ **Native KVO / ComponentCallbacks with 30ms Debounce** |
 
-### Native Optimizations
-
-**iOS Optimizations:**
-- **Synchronous Thread Safe Dispatch**: Direct `UIWindow.safeAreaInsets` query via `DispatchQueue.main.sync` if invoked from non-main thread.
-- **KVO Hierarchy Observers**: Registers Key-Value Observing on `window.safeAreaInsets`, `window.bounds`, `tabBar.isHidden`, and `tabBar.frame`.
-- **Zero Bridge Overhead**: Directly constructs C++ structs from Swift without JSON serialization or Promise resolutions.
-
-**Android Optimizations:**
-- **WindowInsetsCompat Direct Inspection**: Queries decor view root insets directly via JNI / C++.
-- **Edge-to-Edge Ready**: Seamlessly handles Android 15 edge-to-edge enforcement, status bar, and gesture navigation bar cutouts.
+---
 
 ## 🏃‍♂️ Running the Example
-
-The example project demonstrates real-time iPadOS 18 dual-mode navigation, screen rotation, interactive insets showcase, and Uniwind Tailwind CSS integration:
 
 ```sh
 cd example
 yarn install
 
-# Run on iOS (iPad or iPhone)
+# Run on iOS (Simulator or physical device)
 yarn ios
 
-# Run on Android
+# Run on Android (Emulator or physical device)
 yarn android
 ```
 
-## 🛠️ Development
+---
+
+## 🛠️ Development & Contributing
 
 ```sh
 # Install dependencies
@@ -329,30 +382,18 @@ yarn install
 # Generate Nitro native bindings
 yarn nitrogen
 
-# Build the library with react-native-builder-bob
+# Build library
 yarn prepare
 
 # Typecheck TypeScript
 yarn typecheck
 
-# Lint code
+# Lint codebase
 yarn lint
 ```
 
-## 🤝 Contributing
-
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) to learn how to contribute to the repository and development workflow.
-
-## 📋 Documentation
-
-- **[API Reference](#-api-reference)** - Complete API, methods, hooks, and types documentation
-- **[Contributing Guide](CONTRIBUTING.md)** - How to contribute to the project
-- **[Code of Conduct](CODE_OF_CONDUCT.md)** - Community guidelines
+---
 
 ## 📄 License
 
 MIT © [2Security](https://github.com/duongnguyen17/react-native-nitro-safe-area)
-
----
-
-Built with ❤️ by [2Security](https://github.com/duongnguyen17/react-native-nitro-safe-area) using [Nitro Modules](https://nitro.margelo.com/)
