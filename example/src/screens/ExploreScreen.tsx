@@ -152,10 +152,13 @@ export const ExploreScreen = () => {
             </View>
           </View>
           <Text className="text-sky-800 text-xs mb-3 leading-relaxed">
-            Navigate to a push screen on the root stack without the Bottom Tab
-            Bar. Demonstrates standard Uniwind{' '}
-            <Text className="font-mono font-bold">safe-offset</Text> for
-            physical window insets.
+            Navigate to a push screen with{' '}
+            <Text className="font-mono font-semibold">
+              headerTransparent: true
+            </Text>
+            . Demonstrates zero-layout-shift Uniwind{' '}
+            <Text className="font-mono font-bold">pt-header-offset-*</Text> and{' '}
+            <Text className="font-mono font-bold">h-header</Text> at Frame 0!
           </Text>
           <TouchableOpacity
             activeOpacity={0.8}
@@ -163,7 +166,7 @@ export const ExploreScreen = () => {
             className="bg-sky-600 active:bg-sky-700 py-2.5 px-4 rounded-xl items-center flex-row justify-center shadow-sm"
           >
             <Text className="text-white font-bold text-sm mr-1">
-              Open Stack Screen
+              Open Transparent Header Demo
             </Text>
             <Text className="text-white font-bold text-sm">→</Text>
           </TouchableOpacity>

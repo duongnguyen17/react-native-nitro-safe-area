@@ -99,6 +99,27 @@ export interface SafeAreaMetrics {
    * Window / screen bounds rectangle in density-independent pixels (points on iOS, dp on Android).
    */
   frame: Rect;
+
+  /**
+   * Navigation Bar height (UINavigationBar on iOS, Toolbar / Action Bar on Android).
+   * - iOS iPhone Portrait: 44pt, Landscape: 32pt.
+   * - iOS iPad: 50pt.
+   * - Android: 56dp (portrait), 48dp (landscape), 64dp (tablet >= 600dp).
+   */
+  navBarHeight: number;
+
+  /**
+   * Total header height including status bar / top safe area inset and navigation bar.
+   * Formula: `insets.top + navBarHeight`.
+   * Eliminates layout shift at Frame 0 for `headerTransparent: true` screens.
+   */
+  headerHeight: number;
+
+  /**
+   * iOS Large Title Navigation Bar height (96pt on iPhone, 102pt on iPad).
+   * Defaults to `navBarHeight` on Android or when large title is not supported.
+   */
+  largeTitleNavBarHeight: number;
 }
 
 /**

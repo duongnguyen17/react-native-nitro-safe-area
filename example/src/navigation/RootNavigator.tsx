@@ -19,7 +19,19 @@ export function RootNavigator() {
       }}
     >
       <Stack.Screen name="Tabs" component={BottomTabNavigator} />
-      <Stack.Screen name="Details" component={DetailScreen} />
+      <Stack.Screen
+        name="Details"
+        component={DetailScreen}
+        options={{
+          headerShown: true,
+          headerTransparent: true,
+          headerShadowVisible: false,
+          headerBackButtonDisplayMode: 'minimal',
+          scrollEdgeEffects: { top: 'hidden' },
+          headerTitle: 'Transparent Header Demo',
+          headerTintColor: '#0284c7',
+        }}
+      />
     </Stack.Navigator>
   );
 }

@@ -9068,7 +9068,7 @@ __metadata:
 
 "uniwind@patch:uniwind@npm%3A1.14.0#~/patches/uniwind+1.14.0.patch":
   version: 1.14.0
-  resolution: "uniwind@patch:uniwind@npm%3A1.14.0#~/patches/uniwind+1.14.0.patch::version=1.14.0&hash=dd5a58"
+  resolution: "uniwind@patch:uniwind@npm%3A1.14.0#~/patches/uniwind+1.14.0.patch::version=1.14.0&hash=4a2392"
   dependencies:
     "@tailwindcss/node": "npm:4.3.3"
     "@tailwindcss/oxide": "npm:4.3.3"
@@ -9089,7 +9089,7 @@ __metadata:
       optional: true
   bin:
     uniwind: dist/cli/index.mjs
-  checksum: 10c0/0c20d93b9b2f0d54d80b44f4a256997322727d7d18ea0cb27ec4e64767699a72ddaa657d0501c9f6995c2432526bc989b858b7e5afc7c3259776a59ed5cee425
+  checksum: 10c0/2dcffce14150ec9925811e67be275848934f705e19abc281c90811773fe70e76abee0135f6037d46eece5597c9808f84e31ba009532d2656bc7e2138ee02aea3
   languageName: node
   linkType: hard
 

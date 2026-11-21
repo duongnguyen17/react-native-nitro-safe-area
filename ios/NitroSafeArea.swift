@@ -105,6 +105,7 @@ public class HybridNitroSafeArea: HybridNitroSafeAreaSpec {
         screenBounds = UIScreen.main.bounds
       }
       let isLandscape = screenBounds.width > screenBounds.height
+      let isPad = UIDevice.current.userInterfaceIdiom == .pad
       let orientation: DeviceOrientation = isLandscape ? .landscape : .portrait
       var initialContentInsets = EdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
       var fallbackMode: NavigationMode = .none
@@ -125,6 +126,19 @@ public class HybridNitroSafeArea: HybridNitroSafeAreaSpec {
         }
       }
 
+      let defaultNavBarHeight: Double = getIntrinsicNavBarHeight(screenBounds: screenBounds)
+      let largeTitleNavBarHeight: Double = defaultNavBarHeight + 52.0
+      let intrinsicTopOffset: Double = {
+        if initialContentInsets.top > 0 {
+          return initialContentInsets.top
+        }
+        if !isPad && isLandscape && defaultNavBarHeight >= 50.0 {
+          return 24.0
+        }
+        return initialContentInsets.top
+      }()
+      let headerHeight: Double = intrinsicTopOffset + defaultNavBarHeight
+
       let initialFrame = Rect(x: 0, y: 0, width: Double(screenBounds.width), height: Double(screenBounds.height))
       return SafeAreaMetrics(
         insets: EdgeInsets(top: 0, left: 0, bottom: 0, right: 0),
@@ -135,7 +149,10 @@ public class HybridNitroSafeArea: HybridNitroSafeAreaSpec {
         sidebarWidth: fallbackSidebarWidth,
         isTabBarHidden: false,
         orientation: orientation,
-        frame: initialFrame
+        frame: initialFrame,
+        navBarHeight: defaultNavBarHeight,
+        headerHeight: headerHeight,
+        largeTitleNavBarHeight: largeTitleNavBarHeight
       )
     }
 
@@ -309,6 +326,48 @@ public class HybridNitroSafeArea: HybridNitroSafeAreaSpec {
       height: Double(screenBounds.height)
     )
 
+    // Navigation bar height calculation (0ms Frame 0 engine)
+    var navBarHeight: Double = getIntrinsicNavBarHeight(screenBounds: screenBounds)
+
+    // Intrinsic top offset for header (Frame 0):
+    // - In portrait: navigation bar starts below status bar / dynamic island (windowInsets.top).
+    // - In landscape on iPhone with modern liquid glass bars (iOS 26+): status bar is hidden (windowInsets.top == 0),
+    //   but UIKit sets _minimumTopPadding to 24pt to clear rounded corner curvature and bezel.
+    let intrinsicTopOffset: Double = {
+      if Double(windowInsets.top) > 0 {
+        return Double(windowInsets.top)
+      }
+      if !isPad && isLandscape && navBarHeight >= 50.0 {
+        return 24.0
+      }
+      return Double(windowInsets.top)
+    }()
+
+    var headerHeight: Double = intrinsicTopOffset + navBarHeight
+
+    if let nav = topVC?.navigationController ?? findNavigationController(from: rootVC) {
+      let bar = nav.navigationBar
+      let barHeight = Double(bar.frame.height)
+      if barHeight > 0 {
+        navBarHeight = barHeight
+      }
+
+      // If navigation bar is active and laid out in window
+      if !nav.isNavigationBarHidden && !bar.isHidden && bar.alpha > 0.01 {
+        let barInWindow = bar.convert(bar.bounds, to: window)
+        if barInWindow.maxY > 0 {
+          headerHeight = Double(barInWindow.maxY)
+        }
+      } else if let topView = topVC?.view, topView.safeAreaInsets.top > 0 {
+        let vcTopInset = Double(topView.safeAreaInsets.top)
+        if vcTopInset >= navBarHeight {
+          headerHeight = vcTopInset
+        }
+      }
+    }
+
+    let largeTitleNavBarHeight: Double = navBarHeight + 52.0
+
     return SafeAreaMetrics(
       insets: finalInsets,
       contentInsets: finalContentInsets,
@@ -318,7 +377,10 @@ public class HybridNitroSafeArea: HybridNitroSafeAreaSpec {
       sidebarWidth: sidebarWidth,
       isTabBarHidden: isTabBarHidden,
       orientation: orientation,
-      frame: finalFrame
+      frame: finalFrame,
+      navBarHeight: navBarHeight,
+      headerHeight: headerHeight,
+      largeTitleNavBarHeight: largeTitleNavBarHeight
     )
   }
 
@@ -415,7 +477,10 @@ public class HybridNitroSafeArea: HybridNitroSafeAreaSpec {
            a.isTabBarHidden == b.isTabBarHidden &&
            a.tabBarHeight == b.tabBarHeight &&
            a.topCapsuleHeight == b.topCapsuleHeight &&
-           a.sidebarWidth == b.sidebarWidth
+           a.sidebarWidth == b.sidebarWidth &&
+           a.navBarHeight == b.navBarHeight &&
+           a.headerHeight == b.headerHeight &&
+           a.largeTitleNavBarHeight == b.largeTitleNavBarHeight
   }
 
   private func notifyListeners(debounce: Bool = true) {
@@ -521,5 +586,39 @@ public class HybridNitroSafeArea: HybridNitroSafeAreaSpec {
       }
     }
     return nil
+  }
+
+  private func findNavigationController(from root: UIViewController?) -> UINavigationController? {
+    guard let root = root else { return nil }
+    if let nav = root as? UINavigationController {
+      return nav
+    }
+    if let presented = root.presentedViewController {
+      if let nav = findNavigationController(from: presented) {
+        return nav
+      }
+    }
+    if let tab = root as? UITabBarController {
+      if let nav = findNavigationController(from: tab.selectedViewController) {
+        return nav
+      }
+    }
+    for child in root.children {
+      if let nav = findNavigationController(from: child) {
+        return nav
+      }
+    }
+    return nil
+  }
+
+  private func getIntrinsicNavBarHeight(screenBounds: CGRect) -> Double {
+    let bar = UINavigationBar()
+    let measured = Double(bar.sizeThatFits(CGSize(width: screenBounds.width, height: 0)).height)
+    if measured > 0 {
+      return measured
+    }
+    let isPad = UIDevice.current.userInterfaceIdiom == .pad
+    let isLandscape = screenBounds.width > screenBounds.height
+    return isPad ? 50.0 : (isLandscape ? 32.0 : 44.0)
   }
 }

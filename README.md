@@ -42,6 +42,7 @@ App Cold Launch ──> Synchronous JSI Memory Read (Insets: 59px at 0ms) ──
 - 📷 **Edge-to-Edge & Camera Cutout Precision**:
   - **Android**: Extracts `WindowInsetsCompat.Type.displayCutout()` non-invasively so landscape punch holes are properly padded (`Left Inset = 54.1pt`).
   - **iOS**: Adheres to Apple's **Symmetrical Gutter Principle** (`Left Inset == Right Inset == 62.0pt` on iPhone 16/18 Pro) for visual balance and muscle memory.
+- 🧭 **Native Stack Header Synchronization**: Synchronously pre-computes and tracks Native Navigation Bar and Header heights (`headerHeight`, `navBarHeight`, `largeTitleNavBarHeight`) with 0ms Frame 0 accuracy. Supports full-bleed `headerTransparent: true` screens with dedicated Uniwind utilities (`pt-header`, `h-header`, `pt-nav-bar`) and zero layout shift across Portrait and Landscape.
 - 🎨 **Uniwind & Tailwind CSS v4 First-Class**: Synchronously pushes insets into Uniwind's runtime store at Frame 0 via `syncWithUniwind(Uniwind)`. All utility classes (`pt-safe`, `pb-safe`, `px-safe-offset-5`, `pb-safe-offset-5`) work out of the box with zero component wrappers.
 - 🔄 **30ms Event Coalescing (Debounce)**: Coalesces rapid sequential hardware rotation events (orientation -> window bounds -> layoutSubviews) into a single atomic JavaScript update, eliminating redundant re-renders.
 - 🛡️ **Leak-Free Enterprise Architecture**:
@@ -142,14 +143,16 @@ export default function App() {
 }
 ```
 
-#### Dual-Mode Utilities: Standard `safe-offset` vs `nitro-safe-offset`
+#### Multi-Mode Utilities: Standard `safe-offset`, `nitro-safe-offset`, and `header-offset`
 
 - **Standard Utilities (`pt-safe-offset-*`, `pb-safe-offset-*`, `px-safe-offset-*`)**:
   Reference standard physical window insets (Notch, Dynamic Island, Home Bar, Status Bar).
 - **Nitro Utilities (`pt-nitro-safe-offset-*`, `pb-nitro-safe-offset-*`, `px-nitro-safe-offset-*`)**:
   Reference semantic content insets (Native Bottom Tabs ~104pt, iPadOS 18 Floating Top Capsule ~88pt, iPadOS 18 Leftside Sidebar ~320pt).
+- **Header Utilities (`pt-header`, `pt-header-offset-*`, `h-header`, `top-header`, `pt-nav-bar`)**:
+  Reference total native stack header height (Status Bar + Navigation Bar) or standalone Navigation Bar height at Frame 0. Perfect for `headerTransparent: true` screens.
 
-> 💡 **Uniwind Patch Guide**: To enable `*-nitro-safe-offset-*` alongside standard `*-safe-offset-*`, follow the step-by-step [Uniwind Patch Guide](docs/uniwind-patch.md). Ready-to-use patch file is included in `patches/uniwind+1.14.0.patch`.
+> 💡 **Uniwind Patch Guide**: To enable `*-nitro-safe-offset-*` and `*-header-*` utilities, follow the step-by-step [Uniwind Patch Guide](docs/uniwind-patch.md). Ready-to-use patch file is included in `patches/uniwind+1.14.0.patch`.
 
 ```tsx
 import { View, Text, ScrollView } from 'react-native';
@@ -158,13 +161,13 @@ export const ShowcaseScreen = () => {
   return (
     <View className="flex-1 bg-white">
       {/* 
-        - pt-nitro-safe-offset-2: Insets + 8pt breathing room below iPad Top Capsule (~88pt) or Status Bar.
+        - pt-header-offset-4: Insets + Header height + 16pt offset for transparent native header screens.
         - px-nitro-safe-offset-5: Adapts dynamically to iPad Leftside Sidebar (~320pt) or Android landscape cutouts (~54pt).
         - pb-nitro-safe-offset-5: Insets + 20pt for bottom home bar or native bottom tab bar (~104pt).
       */}
       <ScrollView
         className="flex-1"
-        contentContainerClassName="pt-nitro-safe-offset-2 pb-nitro-safe-offset-5 px-nitro-safe-offset-5"
+        contentContainerClassName="pt-header-offset-4 pb-nitro-safe-offset-5 px-nitro-safe-offset-5"
         showsVerticalScrollIndicator={false}
       >
         <Text className="text-xl font-bold text-slate-900">Safe Area Showcase</Text>
@@ -173,6 +176,20 @@ export const ShowcaseScreen = () => {
   );
 };
 ```
+
+> [!TIP]
+> **iOS Best Practice for `headerTransparent: true`:**
+> When using `headerTransparent: true` with native stack navigation, UIKit renders a default 1px hairline shadow separator that animates during screen push transitions. Set `headerShadowVisible: false` (and optionally `headerBackButtonDisplayMode: 'minimal'`) in your screen options to keep the header completely static and smooth:
+> ```tsx
+> <Stack.Screen
+>   name="Details"
+>   component={DetailScreen}
+>   options={{
+>     headerTransparent: true,
+>     headerShadowVisible: false,
+>   }}
+> />
+> ```
 
 ---
 
@@ -258,6 +275,9 @@ Here is a comprehensive comparison of how safe area concepts and native features
 | `getSafeArea()` | `()` | `SafeAreaMetrics` | Synchronously returns full metrics via JSI (0ms latency). |
 | `getContentInsets()` | `()` | `EdgeInsets` | Synchronously returns insets adjusted for active navigation Chrome. |
 | `getWindowInsets()` | `()` | `EdgeInsets` | Synchronously returns raw physical hardware window insets. |
+| `getHeaderHeight()` | `()` | `number` | Synchronously returns total native stack header height (`top + navBarHeight`). |
+| `getNavBarHeight()` | `()` | `number` | Synchronously returns native navigation bar height (44/54pt on iOS, 56dp on Android). |
+| `getLargeTitleNavBarHeight()` | `()` | `number` | Synchronously returns iOS large title navigation bar height (~96–102pt). |
 | `addOnSafeAreaChangedListener()` | `(listener: (metrics: SafeAreaMetrics) => void)` | `() => void` | Subscribes to native safe area, orientation, or mode changes. Returns unsubscribe callback. |
 | `syncWithUniwind()` | `(uniwind: UniwindLike, options?: { useWindowInsets?: boolean })` | `() => void` | Synchronizes insets into Uniwind's runtime store at Frame 0 and subscribes to changes. |
 
@@ -270,6 +290,9 @@ Here is a comprehensive comparison of how safe area concepts and native features
 | `useSafeAreaMetrics()` | `SafeAreaMetrics` | Synchronous Frame 0 read with reactive updates powered by `useSyncExternalStore`. |
 | `useContentInsets()` | `EdgeInsets` | Returns current content insets with snapshot memoization to avoid redundant re-renders. |
 | `useWindowInsets()` | `EdgeInsets` | Returns raw physical window insets with snapshot memoization. |
+| `useHeaderHeight()` | `number` | Returns total native stack header height with reactive updates. |
+| `useNavBarHeight()` | `number` | Returns native navigation bar height with reactive updates. |
+| `useLargeTitleNavBarHeight()` | `number` | Returns iOS large title navigation bar height with reactive updates. |
 | `useUniwindSafeArea()` | `void` | Automatically manages Uniwind synchronization during the host component lifecycle. |
 
 ---
@@ -334,6 +357,15 @@ export interface SafeAreaMetrics {
 
   /** Physical device orientation. */
   orientation: DeviceOrientation;
+
+  /** Height of native navigation bar in dp/pt (excluding status bar). */
+  navBarHeight: number;
+
+  /** Total native stack header height in dp/pt (status bar + nav bar). */
+  headerHeight: number;
+
+  /** Height of large title navigation bar on iOS (0 on Android / when not applicable). */
+  largeTitleNavBarHeight: number;
 }
 ```
 

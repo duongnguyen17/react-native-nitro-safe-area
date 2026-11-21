@@ -103,6 +103,27 @@ export function getWindowInsets(): EdgeInsets {
 }
 
 /**
+ * Synchronously queries the navigation bar height in density-independent pixels.
+ *
+ * @remarks
+ * - **iOS**: 44pt (portrait iPhone), 32pt (landscape compact), 50pt (iPad).
+ * - **Android**: 56dp (standard mobile), 48dp (landscape), 64dp (tablet >= 600dp).
+ */
+export function getNavBarHeight(): number {
+  return NitroSafeArea.getSafeArea().navBarHeight;
+}
+
+/**
+ * Synchronously queries the total header height (insets.top + navBarHeight).
+ *
+ * @remarks
+ * Eliminates layout shift at Frame 0 for `headerTransparent: true` screens.
+ */
+export function getHeaderHeight(): number {
+  return NitroSafeArea.getSafeArea().headerHeight;
+}
+
+/**
  * Initial metrics structure compatible with `<SafeAreaProvider initialMetrics={...}>` from `react-native-safe-area-context`.
  */
 export interface InitialMetrics {
@@ -210,6 +231,9 @@ function areMetricsEqual(a: SafeAreaMetrics, b: SafeAreaMetrics): boolean {
     a.sidebarWidth === b.sidebarWidth &&
     a.topCapsuleHeight === b.topCapsuleHeight &&
     a.isTabBarHidden === b.isTabBarHidden &&
+    a.navBarHeight === b.navBarHeight &&
+    a.headerHeight === b.headerHeight &&
+    a.largeTitleNavBarHeight === b.largeTitleNavBarHeight &&
     areInsetsEqual(a.insets, b.insets) &&
     areInsetsEqual(a.contentInsets, b.contentInsets) &&
     areRectsEqual(a.frame, b.frame)
@@ -391,6 +415,18 @@ export function useWindowInsets(): EdgeInsets {
 // =============================================================================
 
 /**
+ * Header dimensions bundle for Uniwind integration.
+ */
+export interface NitroHeaderMetrics {
+  /** Total header height = insets.top + navBarHeight. */
+  height: number;
+  /** Navigation bar height without status bar. */
+  navBarHeight: number;
+  /** iOS large title navigation bar height. */
+  largeTitleNavBarHeight?: number;
+}
+
+/**
  * Minimal interface definition for Uniwind runtime compatibility.
  */
 export interface UniwindLike {
@@ -400,7 +436,18 @@ export interface UniwindLike {
    * Updates nitro content insets in Uniwind's style store (`nitro-safe-offset`, `nitro-safe`, etc.)
    * when using patched Uniwind.
    */
-  updateNitroInsets?: (insets: EdgeInsets) => void;
+  updateNitroInsets?: (
+    insets: EdgeInsets & {
+      navBarHeight?: number;
+      headerHeight?: number;
+      largeTitleNavBarHeight?: number;
+    }
+  ) => void;
+  /**
+   * Updates nitro header dimensions in Uniwind's style store (`pt-header`, `h-header`, etc.)
+   * when using patched Uniwind.
+   */
+  updateNitroHeader?: (header: NitroHeaderMetrics) => void;
   /** Optional theme CSS variables update handler. */
   updateCSSVariables?: (theme: any, variables: any) => void;
 }
@@ -481,36 +528,44 @@ export function syncWithUniwind(
   }
 
   const hasNitro = typeof uniwind.updateNitroInsets === 'function';
+  const hasNitroHeader = typeof uniwind.updateNitroHeader === 'function';
 
-  const sync = (insets: EdgeInsets, contentInsets: EdgeInsets) => {
+  const sync = (metrics: SafeAreaMetrics) => {
+    const chosenInsets = options?.useWindowInsets
+      ? metrics.insets
+      : metrics.contentInsets;
+
     if (hasNitro) {
-      uniwind.updateNitroInsets!(
-        options?.useWindowInsets ? insets : contentInsets
-      );
-      uniwind.updateInsets(insets);
+      uniwind.updateNitroInsets!({
+        ...chosenInsets,
+        navBarHeight: metrics.navBarHeight,
+        headerHeight: metrics.headerHeight,
+        largeTitleNavBarHeight: metrics.largeTitleNavBarHeight,
+      });
+      uniwind.updateInsets(metrics.insets);
     } else {
-      uniwind.updateInsets(options?.useWindowInsets ? insets : contentInsets);
+      uniwind.updateInsets(chosenInsets);
+    }
+
+    if (hasNitroHeader) {
+      uniwind.updateNitroHeader!({
+        height: metrics.headerHeight,
+        navBarHeight: metrics.navBarHeight,
+        largeTitleNavBarHeight: metrics.largeTitleNavBarHeight,
+      });
     }
   };
 
   // Frame 0 synchronous update — zero flash / zero layout shift!
   const initialMetrics = NitroSafeArea.getSafeArea();
-  sync(initialMetrics.insets, initialMetrics.contentInsets);
-  let lastInsets = initialMetrics.insets;
-  let lastContentInsets = initialMetrics.contentInsets;
+  sync(initialMetrics);
+  let lastMetrics = initialMetrics;
 
   // Reactive listener for native changes (rotation, iPad sidebar toggle, etc.)
   return addOnSafeAreaChangedListener((metrics) => {
-    const insetsChanged = !areInsetsEqual(lastInsets, metrics.insets);
-    const contentInsetsChanged = !areInsetsEqual(
-      lastContentInsets,
-      metrics.contentInsets
-    );
-
-    if (insetsChanged || contentInsetsChanged) {
-      lastInsets = metrics.insets;
-      lastContentInsets = metrics.contentInsets;
-      sync(metrics.insets, metrics.contentInsets);
+    if (!areMetricsEqual(lastMetrics, metrics)) {
+      lastMetrics = metrics;
+      sync(metrics);
     }
   });
 }

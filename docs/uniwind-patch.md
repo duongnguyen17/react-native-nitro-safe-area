@@ -25,6 +25,8 @@ By applying this patch, Uniwind gains dedicated utilities powered by `env(nitro-
 | :--- | :--- | :--- |
 | **`*-safe` / `*-safe-offset-*`** | Physical Window Insets (`metrics.insets`) | Default Uniwind setup: status bar, notch, Dynamic Island, home indicator. |
 | **`*-nitro-safe` / `*-nitro-safe-offset-*`** | Semantic Content Insets (`metrics.contentInsets`) | Powered by `@2security/nitro-safe-area`: native bottom tabs, iPadOS 18 top capsule & left sidebar. |
+| **`*-header` / `*-header-offset-*`** | Native Stack Header Height (`metrics.headerHeight`) | Status bar + Navigation Bar combined height. Perfect for full-bleed transparent header screens. |
+| **`*-nav-bar` / `*-nav-bar-offset-*`** | Navigation Bar Only (`metrics.navBarHeight`) | Standalone Navigation Bar height (44pt/54pt on iOS, 56dp on Android) excluding Status Bar. |
 
 ---
 
@@ -45,6 +47,39 @@ The patch adds full Tailwind CSS v4 utilities mirroring all standard safe area u
 
 ### Boundary Variants (`*-or-*`)
 - `*-nitro-safe-or-*` (e.g. `pt-nitro-safe-or-4`, `pb-nitro-safe-or-6`): Resolves to `max(env(nitro-safe-area-inset-*), spacing)`.
+
+---
+
+## 🧭 Native Stack Header Utilities (`*-header`, `*-nav-bar`)
+
+When building full-bleed transparent header screens (`headerTransparent: true`) with `@react-navigation/native-stack`, content scrolls beneath the native header. Traditional approaches require passing `headerHeight` via context or state, causing 1–2 frame layout jumps.
+
+The patch introduces native CSS environment variables and corresponding Tailwind CSS v4 classes:
+- `env(nitro-header-height)`: Total header height (Status Bar + Navigation Bar).
+- `env(nitro-nav-bar-height)`: Navigation Bar height only (44pt/54pt on iOS, 56dp on Android).
+- `env(nitro-large-title-nav-bar-height)`: Large title Navigation Bar height.
+
+### Combined Header Height (`pt-header`, `h-header`, `top-header`)
+- **Padding**: `pt-header`, `pt-header-offset-*` (e.g. `pt-header-offset-4`), `pt-header-or-*`
+- **Height / Min / Max**: `h-header`, `min-h-header`, `max-h-header`
+- **Positioning**: `top-header`, `top-header-offset-*`
+- **Margin**: `mt-header`, `mt-header-offset-*`
+
+### Navigation Bar Only (`pt-nav-bar`, `h-nav-bar`, `top-nav-bar`)
+- **Padding**: `pt-nav-bar`, `pt-nav-bar-offset-*`, `pt-nav-bar-or-*`
+- **Height / Min / Max**: `h-nav-bar`, `min-h-nav-bar`, `max-h-nav-bar`
+- **Positioning**: `top-nav-bar`, `top-nav-bar-offset-*`
+- **Margin**: `mt-nav-bar`, `mt-nav-bar-offset-*`
+
+> [!TIP]
+> **iOS Best Practice for `headerTransparent: true`:**
+> When using `headerTransparent: true`, UIKit renders an animated 1px hairline shadow (`_UIBarBackgroundShadowView`) by default during push transitions. To achieve a perfectly seamless and static transparent header, configure your screen options with:
+> ```typescript
+> options={{
+>   headerTransparent: true,
+>   headerShadowVisible: false, // 👈 Disables UIKit's hairline separator
+> }}
+> ```
 
 ---
 
@@ -140,6 +175,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 // When patched, syncWithUniwind automatically updates:
 // 1. Uniwind.updateNitroInsets(metrics.contentInsets) -> for *-nitro-safe-*
 // 2. Uniwind.updateInsets(metrics.insets) -> for standard *-safe-*
+// 3. Uniwind.updateNitroHeader(headerHeight, navBarHeight, largeTitleNavBarHeight) -> for *-header / *-nav-bar
 syncWithUniwind(Uniwind, { adaptiveNavigation: true });
 
 export default function App() {

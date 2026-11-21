@@ -1,5 +1,5 @@
 diff --git a/dist/common/bundler/artifacts/css/insets.js b/dist/common/bundler/artifacts/css/insets.js
-index fcf631e54d2200ec3c4ad8af91393cbcea78465f..eedea69431aa7580d1147e81ad6b92a56b45b432 100644
+index fcf631e54d2200ec3c4ad8af91393cbcea78465f..3e13a804c64dfc089b16461f9e5b36e0af9d694d 100644
 --- a/dist/common/bundler/artifacts/css/insets.js
 +++ b/dist/common/bundler/artifacts/css/insets.js
 @@ -106,6 +106,10 @@ const generateCSSForInsets = () => {
@@ -9,13 +9,13 @@ index fcf631e54d2200ec3c4ad8af91393cbcea78465f..eedea69431aa7580d1147e81ad6b92a5
 +    let nitro = css;
 +  nitro = nitro.replace(/@utility ([a-z0-9-]+)-safe/g, '@utility $1-nitro-safe');
 +  nitro = nitro.replace(/env\(safe-area-inset-/g, 'env(nitro-safe-area-inset-');
-+  css = css + "\n\n" + nitro;
++  css = css + "\n\n" + nitro + "\n\n" + '/* ================= Header Utilities ================= */\n@utility h-header {\n    height: env(nitro-header-height);\n}\n\n@utility min-h-header {\n    min-height: env(nitro-header-height);\n}\n\n@utility max-h-header {\n    max-height: env(nitro-header-height);\n}\n\n@utility top-header {\n    top: env(nitro-header-height);\n}\n\n@utility top-header-offset-* {\n    top: calc(env(nitro-header-height) + --spacing(--value(integer)));\n    top: calc(env(nitro-header-height) + --value([length], --spacing-*));\n}\n\n@utility top-header-or-* {\n    top: max(env(nitro-header-height), --spacing(--value(integer)));\n    top: max(env(nitro-header-height), --value([length], --spacing-*));\n}\n\n@utility pt-header {\n    padding-top: env(nitro-header-height);\n}\n\n@utility pt-header-offset-* {\n    padding-top: calc(env(nitro-header-height) + --spacing(--value(integer)));\n    padding-top: calc(env(nitro-header-height) + --value([length], --spacing-*));\n}\n\n@utility pt-header-or-* {\n    padding-top: max(env(nitro-header-height), --spacing(--value(integer)));\n    padding-top: max(env(nitro-header-height), --value([length], --spacing-*));\n}\n\n@utility mt-header {\n    margin-top: env(nitro-header-height);\n}\n\n@utility mt-header-offset-* {\n    margin-top: calc(env(nitro-header-height) + --spacing(--value(integer)));\n    margin-top: calc(env(nitro-header-height) + --value([length], --spacing-*));\n}\n\n/* ================= Nav Bar Utilities ================= */\n@utility h-nav-bar {\n    height: env(nitro-nav-bar-height);\n}\n\n@utility min-h-nav-bar {\n    min-height: env(nitro-nav-bar-height);\n}\n\n@utility top-nav-bar {\n    top: env(nitro-nav-bar-height);\n}\n\n@utility top-nav-bar-offset-* {\n    top: calc(env(nitro-nav-bar-height) + --spacing(--value(integer)));\n    top: calc(env(nitro-nav-bar-height) + --value([length], --spacing-*));\n}\n\n@utility pt-nav-bar {\n    padding-top: env(nitro-nav-bar-height);\n}\n\n@utility pt-nav-bar-offset-* {\n    padding-top: calc(env(nitro-nav-bar-height) + --spacing(--value(integer)));\n    padding-top: calc(env(nitro-nav-bar-height) + --value([length], --spacing-*));\n}\n\n@utility pt-nav-bar-or-* {\n    padding-top: max(env(nitro-nav-bar-height), --spacing(--value(integer)));\n    padding-top: max(env(nitro-nav-bar-height), --value([length], --spacing-*));\n}\n\n@utility mt-nav-bar {\n    margin-top: env(nitro-nav-bar-height);\n}\n\n@utility mt-nav-bar-offset-* {\n    margin-top: calc(env(nitro-nav-bar-height) + --spacing(--value(integer)));\n    margin-top: calc(env(nitro-nav-bar-height) + --value([length], --spacing-*));\n}\n\n';
    return css.slice(0, -1);
  };
  const INSETS_CSS = exports.INSETS_CSS = generateCSSForInsets();
 \ No newline at end of file
 diff --git a/dist/common/bundler/css-processor/addMetaToStylesTemplate.js b/dist/common/bundler/css-processor/addMetaToStylesTemplate.js
-index 7915c43c42b3f2bb0c170167b23926a3235f0d0b..3e3f0784530cbc8f7801787ba42b739bcce78d33 100644
+index 7915c43c42b3f2bb0c170167b23926a3235f0d0b..26f77064d08bac1f6081ed4b850d6dd9d6d3a916 100644
 --- a/dist/common/bundler/css-processor/addMetaToStylesTemplate.js
 +++ b/dist/common/bundler/css-processor/addMetaToStylesTemplate.js
 @@ -96,7 +96,7 @@ const addMetaToStylesTemplate = Processor => {
@@ -23,43 +23,65 @@ index 7915c43c42b3f2bb0c170167b23926a3235f0d0b..3e3f0784530cbc8f7801787ba42b739b
          dependencies.add(_consts.StyleDependency.Dimensions);
        }
 -      if (stringifiedEntries.includes("rt.insets")) {
-+      if (stringifiedEntries.includes("rt.insets") || stringifiedEntries.includes("rt.nitroInsets")) {
++      if (stringifiedEntries.includes("rt.insets") || stringifiedEntries.includes("rt.nitroInsets") || stringifiedEntries.includes("rt.nitroHeader")) {
          dependencies.add(_consts.StyleDependency.Insets);
        }
        if (stringifiedEntries.includes("rt.fontScale")) {
 diff --git a/dist/common/bundler/css-processor/css.js b/dist/common/bundler/css-processor/css.js
-index cd943b6b56a728020f2d01ef3324b055c393da95..73b29677197744327114026a4b9cf29aa0d72d97 100644
+index cd943b6b56a728020f2d01ef3324b055c393da95..19b2a8628afb1a914d7891a665c2dfe043008471 100644
 --- a/dist/common/bundler/css-processor/css.js
 +++ b/dist/common/bundler/css-processor/css.js
-@@ -160,6 +160,10 @@ class CSS {
-             const inset = declarationValue.value.name.value.replace("safe-area-inset-", "");
-             return `rt.insets.${inset}`;
+@@ -156,11 +156,26 @@ class CSS {
            }
-+          if (declarationValue.value.name?.value?.startsWith("nitro-safe-area-inset-")) {
-+            const inset = declarationValue.value.name.value.replace("nitro-safe-area-inset-", "");
-+            return `rt.nitroInsets.${inset}`;
-+          }
-           this.logUnsupported(`Unsupported env value - ${JSON.stringify(declarationValue.value)}`);
+           return declarationValue.value;
+         case "env":
+-          if (declarationValue.value.name.type === "ua" && declarationValue.value.name.value.startsWith("safe-area-inset-")) {
+-            const inset = declarationValue.value.name.value.replace("safe-area-inset-", "");
+-            return `rt.insets.${inset}`;
+-          }
+-          this.logUnsupported(`Unsupported env value - ${JSON.stringify(declarationValue.value)}`);
++          
++            const envName = declarationValue.value.name.type === "ua" || declarationValue.value.name.type === "unknown" ? declarationValue.value.name.value : declarationValue.value.name.type === "custom" ? declarationValue.value.name.ident : null;
++            if (envName && envName.startsWith("safe-area-inset-")) {
++              const inset = envName.replace("safe-area-inset-", "");
++              return `rt.insets.${inset}`;
++            }
++            if (envName && envName.startsWith("nitro-safe-area-inset-")) {
++              const inset = envName.replace("nitro-safe-area-inset-", "");
++              return `rt.nitroInsets.${inset}`;
++            }
++            if (envName === "nitro-header-height") {
++              return `rt.nitroHeader.height`;
++            }
++            if (envName === "nitro-nav-bar-height") {
++              return `rt.nitroHeader.navBarHeight`;
++            }
++            if (envName === "nitro-large-title-nav-bar-height") {
++              return `rt.nitroHeader.largeTitleNavBarHeight`;
++            }
++            this.logUnsupported(`Unsupported env value - ${JSON.stringify(declarationValue.value)}`);
            return void 0;
          case "time":
+           {
 diff --git a/dist/common/core/config/config.common.js b/dist/common/core/config/config.common.js
-index a9a77a0d7041e94aa8f08b7c17a736c3d8cedb97..4b4fc63508d84729062cd0b4cc6f842f5bf4c3a4 100644
+index a9a77a0d7041e94aa8f08b7c17a736c3d8cedb97..9afec48665caa22c9d9eac098f7cd4b4b0984907 100644
 --- a/dist/common/core/config/config.common.js
 +++ b/dist/common/core/config/config.common.js
-@@ -82,6 +82,8 @@ class UniwindConfigBuilder {
+@@ -82,6 +82,9 @@ class UniwindConfigBuilder {
    updateCSSVariables(theme, cssVariables) {}
    // oxlint-disable-next-line typescript/no-unused-vars
    updateInsets(insets) {}
 +  // oxlint-disable-next-line typescript/no-unused-vars
 +  updateNitroInsets(insets) {}
++  updateNitroHeader(header) {}
    getCSSVariable = variableName => {
      return (0, _useCSSVariable.getCSSVariable)(variableName, {
        scopedTheme: null,
 diff --git a/dist/common/core/config/config.native.js b/dist/common/core/config/config.native.js
-index b9509ca564d6a01af712d631a121224044135bb6..4762469721d2b28b831231b24711920f09b1b55a 100644
+index b9509ca564d6a01af712d631a121224044135bb6..71a016a385caa30dcd7ee0fe243ccd0ce0a0d0b1 100644
 --- a/dist/common/core/config/config.native.js
 +++ b/dist/common/core/config/config.native.js
-@@ -34,6 +34,13 @@ class UniwindConfigBuilder extends _config.UniwindConfigBuilder {
+@@ -34,6 +34,28 @@ class UniwindConfigBuilder extends _config.UniwindConfigBuilder {
      _native.UniwindStore.runtime.insets.right = insets.right ?? 0;
      _listener.UniwindListener.notify([_consts.StyleDependency.Insets]);
    }
@@ -68,16 +90,31 @@ index b9509ca564d6a01af712d631a121224044135bb6..4762469721d2b28b831231b24711920f
 +    _native.UniwindStore.runtime.nitroInsets.top = insets.top ?? 0;
 +    _native.UniwindStore.runtime.nitroInsets.left = insets.left ?? 0;
 +    _native.UniwindStore.runtime.nitroInsets.right = insets.right ?? 0;
++    if (insets.navBarHeight !== undefined) {
++      _native.UniwindStore.runtime.nitroHeader.navBarHeight = insets.navBarHeight;
++    }
++    if (insets.headerHeight !== undefined) {
++      _native.UniwindStore.runtime.nitroHeader.height = insets.headerHeight;
++    }
++    if (insets.largeTitleNavBarHeight !== undefined) {
++      _native.UniwindStore.runtime.nitroHeader.largeTitleNavBarHeight = insets.largeTitleNavBarHeight;
++    }
++    _listener.UniwindListener.notify([_consts.StyleDependency.Insets]);
++  }
++  updateNitroHeader(header) {
++    _native.UniwindStore.runtime.nitroHeader.height = header.height ?? 0;
++    _native.UniwindStore.runtime.nitroHeader.navBarHeight = header.navBarHeight ?? 0;
++    _native.UniwindStore.runtime.nitroHeader.largeTitleNavBarHeight = header.largeTitleNavBarHeight ?? 0;
 +    _listener.UniwindListener.notify([_consts.StyleDependency.Insets]);
 +  }
    __reinit(generateStyleSheetCallback, themes, stylesFingerprint) {
      if (__DEV__ && stylesFingerprint !== void 0 && stylesFingerprint === this.stylesFingerprint) {
        return;
 diff --git a/dist/common/core/native/runtime.js b/dist/common/core/native/runtime.js
-index e5da209dce105f3db86e41de5236d29964ead970..e13646bf6f524888f7a587484a9b7a4f06c1c377 100644
+index e5da209dce105f3db86e41de5236d29964ead970..55fec2b412b775a56c5596d8195c6e8e380cb9d7 100644
 --- a/dist/common/core/native/runtime.js
 +++ b/dist/common/core/native/runtime.js
-@@ -26,6 +26,12 @@ const UniwindRuntime = exports.UniwindRuntime = {
+@@ -26,6 +26,17 @@ const UniwindRuntime = exports.UniwindRuntime = {
      bottom: 0,
      right: 0
    },
@@ -87,11 +124,16 @@ index e5da209dce105f3db86e41de5236d29964ead970..e13646bf6f524888f7a587484a9b7a4f
 +    bottom: 0,
 +    right: 0
 +  },
++  nitroHeader: {
++    height: 0,
++    navBarHeight: 0,
++    largeTitleNavBarHeight: 0
++  },
    colorMix: _nativeUtils.colorMix,
    pixelRatio: value => value * _reactNative.PixelRatio.get(),
    cubicBezier: () => "",
 diff --git a/dist/metro/transformer.cjs b/dist/metro/transformer.cjs
-index 59d8ce52857537ea01b6b4ae499eb9348ad5ba8d..47496d82133033971e8c8528595b8ac497db1dc3 100644
+index 59d8ce52857537ea01b6b4ae499eb9348ad5ba8d..b269e7ea5314a118a4d03de7937dde1533b74e8b 100644
 --- a/dist/metro/transformer.cjs
 +++ b/dist/metro/transformer.cjs
 @@ -293,7 +293,7 @@ const addMetaToStylesTemplate = (Processor) => {
@@ -99,23 +141,44 @@ index 59d8ce52857537ea01b6b4ae499eb9348ad5ba8d..47496d82133033971e8c8528595b8ac4
          dependencies.add(config.StyleDependency.Dimensions);
        }
 -      if (stringifiedEntries.includes("rt.insets")) {
-+      if (stringifiedEntries.includes("rt.insets") || stringifiedEntries.includes("rt.nitroInsets")) {
++      if (stringifiedEntries.includes("rt.insets") || stringifiedEntries.includes("rt.nitroInsets") || stringifiedEntries.includes("rt.nitroHeader")) {
          dependencies.add(config.StyleDependency.Insets);
        }
        if (stringifiedEntries.includes("rt.fontScale")) {
-@@ -606,6 +606,10 @@ class CSS {
-             const inset = declarationValue.value.name.value.replace("safe-area-inset-", "");
-             return `rt.insets.${inset}`;
+@@ -602,11 +602,26 @@ class CSS {
            }
-+          if (declarationValue.value.name?.value?.startsWith("nitro-safe-area-inset-")) {
-+            const inset = declarationValue.value.name.value.replace("nitro-safe-area-inset-", "");
-+            return `rt.nitroInsets.${inset}`;
-+          }
-           this.logUnsupported(`Unsupported env value - ${JSON.stringify(declarationValue.value)}`);
+           return declarationValue.value;
+         case "env":
+-          if (declarationValue.value.name.type === "ua" && declarationValue.value.name.value.startsWith("safe-area-inset-")) {
+-            const inset = declarationValue.value.name.value.replace("safe-area-inset-", "");
+-            return `rt.insets.${inset}`;
+-          }
+-          this.logUnsupported(`Unsupported env value - ${JSON.stringify(declarationValue.value)}`);
++          
++            const envName = declarationValue.value.name.type === "ua" || declarationValue.value.name.type === "unknown" ? declarationValue.value.name.value : declarationValue.value.name.type === "custom" ? declarationValue.value.name.ident : null;
++            if (envName && envName.startsWith("safe-area-inset-")) {
++              const inset = envName.replace("safe-area-inset-", "");
++              return `rt.insets.${inset}`;
++            }
++            if (envName && envName.startsWith("nitro-safe-area-inset-")) {
++              const inset = envName.replace("nitro-safe-area-inset-", "");
++              return `rt.nitroInsets.${inset}`;
++            }
++            if (envName === "nitro-header-height") {
++              return `rt.nitroHeader.height`;
++            }
++            if (envName === "nitro-nav-bar-height") {
++              return `rt.nitroHeader.navBarHeight`;
++            }
++            if (envName === "nitro-large-title-nav-bar-height") {
++              return `rt.nitroHeader.largeTitleNavBarHeight`;
++            }
++            this.logUnsupported(`Unsupported env value - ${JSON.stringify(declarationValue.value)}`);
            return void 0;
          case "time": {
+           const unit = declarationValue.value.type === "milliseconds" ? "ms" : "s";
 diff --git a/dist/metro/transformer.mjs b/dist/metro/transformer.mjs
-index afea72071c018fd2e9dd8549058b082dd1ea1031..a75ed4d05bf1bd2687457b0f44ab2600f745c9e5 100644
+index afea72071c018fd2e9dd8549058b082dd1ea1031..6de5fd92e07290634bc2200c720eeb69ccb15abd 100644
 --- a/dist/metro/transformer.mjs
 +++ b/dist/metro/transformer.mjs
 @@ -286,7 +286,7 @@ const addMetaToStylesTemplate = (Processor) => {
@@ -123,23 +186,44 @@ index afea72071c018fd2e9dd8549058b082dd1ea1031..a75ed4d05bf1bd2687457b0f44ab2600
          dependencies.add(StyleDependency.Dimensions);
        }
 -      if (stringifiedEntries.includes("rt.insets")) {
-+      if (stringifiedEntries.includes("rt.insets") || stringifiedEntries.includes("rt.nitroInsets")) {
++      if (stringifiedEntries.includes("rt.insets") || stringifiedEntries.includes("rt.nitroInsets") || stringifiedEntries.includes("rt.nitroHeader")) {
          dependencies.add(StyleDependency.Insets);
        }
        if (stringifiedEntries.includes("rt.fontScale")) {
-@@ -599,6 +599,10 @@ class CSS {
-             const inset = declarationValue.value.name.value.replace("safe-area-inset-", "");
-             return `rt.insets.${inset}`;
+@@ -595,11 +595,26 @@ class CSS {
            }
-+          if (declarationValue.value.name?.value?.startsWith("nitro-safe-area-inset-")) {
-+            const inset = declarationValue.value.name.value.replace("nitro-safe-area-inset-", "");
-+            return `rt.nitroInsets.${inset}`;
-+          }
-           this.logUnsupported(`Unsupported env value - ${JSON.stringify(declarationValue.value)}`);
+           return declarationValue.value;
+         case "env":
+-          if (declarationValue.value.name.type === "ua" && declarationValue.value.name.value.startsWith("safe-area-inset-")) {
+-            const inset = declarationValue.value.name.value.replace("safe-area-inset-", "");
+-            return `rt.insets.${inset}`;
+-          }
+-          this.logUnsupported(`Unsupported env value - ${JSON.stringify(declarationValue.value)}`);
++          
++            const envName = declarationValue.value.name.type === "ua" || declarationValue.value.name.type === "unknown" ? declarationValue.value.name.value : declarationValue.value.name.type === "custom" ? declarationValue.value.name.ident : null;
++            if (envName && envName.startsWith("safe-area-inset-")) {
++              const inset = envName.replace("safe-area-inset-", "");
++              return `rt.insets.${inset}`;
++            }
++            if (envName && envName.startsWith("nitro-safe-area-inset-")) {
++              const inset = envName.replace("nitro-safe-area-inset-", "");
++              return `rt.nitroInsets.${inset}`;
++            }
++            if (envName === "nitro-header-height") {
++              return `rt.nitroHeader.height`;
++            }
++            if (envName === "nitro-nav-bar-height") {
++              return `rt.nitroHeader.navBarHeight`;
++            }
++            if (envName === "nitro-large-title-nav-bar-height") {
++              return `rt.nitroHeader.largeTitleNavBarHeight`;
++            }
++            this.logUnsupported(`Unsupported env value - ${JSON.stringify(declarationValue.value)}`);
            return void 0;
          case "time": {
+           const unit = declarationValue.value.type === "milliseconds" ? "ms" : "s";
 diff --git a/dist/module/bundler/artifacts/css/insets.js b/dist/module/bundler/artifacts/css/insets.js
-index eeea246c46a884d278f5aa675454b04e156daee4..fa0c733b4bbaf13dfad6e2de742a0928eef48972 100644
+index eeea246c46a884d278f5aa675454b04e156daee4..a078cfd2a0ec6e8ac1e9d98be046b068bb88897c 100644
 --- a/dist/module/bundler/artifacts/css/insets.js
 +++ b/dist/module/bundler/artifacts/css/insets.js
 @@ -122,6 +122,10 @@ const generateCSSForInsets = () => {
@@ -149,12 +233,12 @@ index eeea246c46a884d278f5aa675454b04e156daee4..fa0c733b4bbaf13dfad6e2de742a0928
 +    let nitro = css;
 +  nitro = nitro.replace(/@utility ([a-z0-9-]+)-safe/g, '@utility $1-nitro-safe');
 +  nitro = nitro.replace(/env\(safe-area-inset-/g, 'env(nitro-safe-area-inset-');
-+  css = css + "\n\n" + nitro;
++  css = css + "\n\n" + nitro + "\n\n" + '/* ================= Header Utilities ================= */\n@utility h-header {\n    height: env(nitro-header-height);\n}\n\n@utility min-h-header {\n    min-height: env(nitro-header-height);\n}\n\n@utility max-h-header {\n    max-height: env(nitro-header-height);\n}\n\n@utility top-header {\n    top: env(nitro-header-height);\n}\n\n@utility top-header-offset-* {\n    top: calc(env(nitro-header-height) + --spacing(--value(integer)));\n    top: calc(env(nitro-header-height) + --value([length], --spacing-*));\n}\n\n@utility top-header-or-* {\n    top: max(env(nitro-header-height), --spacing(--value(integer)));\n    top: max(env(nitro-header-height), --value([length], --spacing-*));\n}\n\n@utility pt-header {\n    padding-top: env(nitro-header-height);\n}\n\n@utility pt-header-offset-* {\n    padding-top: calc(env(nitro-header-height) + --spacing(--value(integer)));\n    padding-top: calc(env(nitro-header-height) + --value([length], --spacing-*));\n}\n\n@utility pt-header-or-* {\n    padding-top: max(env(nitro-header-height), --spacing(--value(integer)));\n    padding-top: max(env(nitro-header-height), --value([length], --spacing-*));\n}\n\n@utility mt-header {\n    margin-top: env(nitro-header-height);\n}\n\n@utility mt-header-offset-* {\n    margin-top: calc(env(nitro-header-height) + --spacing(--value(integer)));\n    margin-top: calc(env(nitro-header-height) + --value([length], --spacing-*));\n}\n\n/* ================= Nav Bar Utilities ================= */\n@utility h-nav-bar {\n    height: env(nitro-nav-bar-height);\n}\n\n@utility min-h-nav-bar {\n    min-height: env(nitro-nav-bar-height);\n}\n\n@utility top-nav-bar {\n    top: env(nitro-nav-bar-height);\n}\n\n@utility top-nav-bar-offset-* {\n    top: calc(env(nitro-nav-bar-height) + --spacing(--value(integer)));\n    top: calc(env(nitro-nav-bar-height) + --value([length], --spacing-*));\n}\n\n@utility pt-nav-bar {\n    padding-top: env(nitro-nav-bar-height);\n}\n\n@utility pt-nav-bar-offset-* {\n    padding-top: calc(env(nitro-nav-bar-height) + --spacing(--value(integer)));\n    padding-top: calc(env(nitro-nav-bar-height) + --value([length], --spacing-*));\n}\n\n@utility pt-nav-bar-or-* {\n    padding-top: max(env(nitro-nav-bar-height), --spacing(--value(integer)));\n    padding-top: max(env(nitro-nav-bar-height), --value([length], --spacing-*));\n}\n\n@utility mt-nav-bar {\n    margin-top: env(nitro-nav-bar-height);\n}\n\n@utility mt-nav-bar-offset-* {\n    margin-top: calc(env(nitro-nav-bar-height) + --spacing(--value(integer)));\n    margin-top: calc(env(nitro-nav-bar-height) + --value([length], --spacing-*));\n}\n\n';
    return css.slice(0, -1);
  };
  export const INSETS_CSS = generateCSSForInsets();
 diff --git a/dist/module/bundler/css-processor/addMetaToStylesTemplate.js b/dist/module/bundler/css-processor/addMetaToStylesTemplate.js
-index 2ad2ed978d3c4a2ad1c52a9c39d715552d1f9f8b..93f4ac02112064f6c5d741811a38417bfc8f261f 100644
+index 2ad2ed978d3c4a2ad1c52a9c39d715552d1f9f8b..b749184d440e840d229be0ac36a4555b20bab2c1 100644
 --- a/dist/module/bundler/css-processor/addMetaToStylesTemplate.js
 +++ b/dist/module/bundler/css-processor/addMetaToStylesTemplate.js
 @@ -89,7 +89,7 @@ export const addMetaToStylesTemplate = (Processor) => {
@@ -162,34 +246,56 @@ index 2ad2ed978d3c4a2ad1c52a9c39d715552d1f9f8b..93f4ac02112064f6c5d741811a38417b
          dependencies.add(StyleDependency.Dimensions);
        }
 -      if (stringifiedEntries.includes("rt.insets")) {
-+      if (stringifiedEntries.includes("rt.insets") || stringifiedEntries.includes("rt.nitroInsets")) {
++      if (stringifiedEntries.includes("rt.insets") || stringifiedEntries.includes("rt.nitroInsets") || stringifiedEntries.includes("rt.nitroHeader")) {
          dependencies.add(StyleDependency.Insets);
        }
        if (stringifiedEntries.includes("rt.fontScale")) {
 diff --git a/dist/module/bundler/css-processor/css.js b/dist/module/bundler/css-processor/css.js
-index d4bed369d5551da105a757cd47225367c93d1c85..a1e6e89ec365196ab49cdfed2364d50526d872ef 100644
+index d4bed369d5551da105a757cd47225367c93d1c85..65bd52853b781ff3bc8f07b13e419effad92ded6 100644
 --- a/dist/module/bundler/css-processor/css.js
 +++ b/dist/module/bundler/css-processor/css.js
-@@ -165,6 +165,10 @@ export class CSS {
-             const inset = declarationValue.value.name.value.replace("safe-area-inset-", "");
-             return `rt.insets.${inset}`;
+@@ -161,11 +161,26 @@ export class CSS {
            }
-+          if (declarationValue.value.name?.value?.startsWith("nitro-safe-area-inset-")) {
-+            const inset = declarationValue.value.name.value.replace("nitro-safe-area-inset-", "");
-+            return `rt.nitroInsets.${inset}`;
-+          }
-           this.logUnsupported(`Unsupported env value - ${JSON.stringify(declarationValue.value)}`);
+           return declarationValue.value;
+         case "env":
+-          if (declarationValue.value.name.type === "ua" && declarationValue.value.name.value.startsWith("safe-area-inset-")) {
+-            const inset = declarationValue.value.name.value.replace("safe-area-inset-", "");
+-            return `rt.insets.${inset}`;
+-          }
+-          this.logUnsupported(`Unsupported env value - ${JSON.stringify(declarationValue.value)}`);
++          
++            const envName = declarationValue.value.name.type === "ua" || declarationValue.value.name.type === "unknown" ? declarationValue.value.name.value : declarationValue.value.name.type === "custom" ? declarationValue.value.name.ident : null;
++            if (envName && envName.startsWith("safe-area-inset-")) {
++              const inset = envName.replace("safe-area-inset-", "");
++              return `rt.insets.${inset}`;
++            }
++            if (envName && envName.startsWith("nitro-safe-area-inset-")) {
++              const inset = envName.replace("nitro-safe-area-inset-", "");
++              return `rt.nitroInsets.${inset}`;
++            }
++            if (envName === "nitro-header-height") {
++              return `rt.nitroHeader.height`;
++            }
++            if (envName === "nitro-nav-bar-height") {
++              return `rt.nitroHeader.navBarHeight`;
++            }
++            if (envName === "nitro-large-title-nav-bar-height") {
++              return `rt.nitroHeader.largeTitleNavBarHeight`;
++            }
++            this.logUnsupported(`Unsupported env value - ${JSON.stringify(declarationValue.value)}`);
            return void 0;
          case "time": {
+           const unit = declarationValue.value.type === "milliseconds" ? "ms" : "s";
 diff --git a/dist/module/core/config/config.common.d.ts b/dist/module/core/config/config.common.d.ts
-index 8edc6edc70214ffaf380e849dc4a82d9bb6aec8c..20f9ea79f6b70807546032aaea23cb3cc01980cd 100644
+index 8edc6edc70214ffaf380e849dc4a82d9bb6aec8c..aab1ce874376d4d7228b94051fa71d28b8f89631 100644
 --- a/dist/module/core/config/config.common.d.ts
 +++ b/dist/module/core/config/config.common.d.ts
-@@ -13,6 +13,7 @@ export declare class UniwindConfigBuilder {
+@@ -13,6 +13,8 @@ export declare class UniwindConfigBuilder {
      setTheme(theme: ThemeName | typeof SYSTEM_THEME): void;
      updateCSSVariables(theme: ThemeName, cssVariables: CSSVariables): void;
      updateInsets(insets: Insets): void;
 +    updateNitroInsets(insets: Insets): void;
++    updateNitroHeader(header: { height: number; navBarHeight: number; largeTitleNavBarHeight?: number }): void;
      getCSSVariable: GetCSSVariable;
      protected __reinit(_: GenerateStyleSheetsCallback, themes: Array<string>): void;
      protected onThemeChange(): void;
@@ -208,22 +314,23 @@ index f0933991d0a052fbb4c00be6abf9f6e1bc37658f..85225d48d4cea2109de0b66f1087baec
      return getCSSVariable(variableName, { scopedTheme: null, rtl: null, variables: null });
    });
 diff --git a/dist/module/core/config/config.native.d.ts b/dist/module/core/config/config.native.d.ts
-index 16ffa76fd89a5fe5c53e5dbd16cd90ab0295960c..fd8f58c1c4d0887cf2bc01a9db7c092db9651a97 100644
+index 16ffa76fd89a5fe5c53e5dbd16cd90ab0295960c..deabbdfdae6e4b4acf7bb9f8457f3c7bf1a04c1b 100644
 --- a/dist/module/core/config/config.native.d.ts
 +++ b/dist/module/core/config/config.native.d.ts
-@@ -6,6 +6,7 @@ declare class UniwindConfigBuilder extends UniwindConfigBuilderBase {
+@@ -6,6 +6,8 @@ declare class UniwindConfigBuilder extends UniwindConfigBuilderBase {
      constructor();
      updateCSSVariables(theme: ThemeName, variables: CSSVariables): void;
      updateInsets(insets: Insets): void;
 +    updateNitroInsets(insets: Insets): void;
++    updateNitroHeader(header: { height: number; navBarHeight: number; largeTitleNavBarHeight?: number }): void;
      protected __reinit(generateStyleSheetCallback: GenerateStyleSheetsCallback, themes: Array<string>, stylesFingerprint?: string): void;
      protected onThemeChange(): void;
  }
 diff --git a/dist/module/core/config/config.native.js b/dist/module/core/config/config.native.js
-index c0b60e0b39af4658bb2ac5270aa6368a3f0c2645..89699c0758b78dbd74b1086f2a663d5de12484b4 100644
+index c0b60e0b39af4658bb2ac5270aa6368a3f0c2645..3ba384bf9ee05371bd06155487eca6694db57619 100644
 --- a/dist/module/core/config/config.native.js
 +++ b/dist/module/core/config/config.native.js
-@@ -28,6 +28,13 @@ class UniwindConfigBuilder extends UniwindConfigBuilderBase {
+@@ -28,6 +28,28 @@ class UniwindConfigBuilder extends UniwindConfigBuilderBase {
      UniwindStore.runtime.insets.right = insets.right ?? 0;
      UniwindListener.notify([StyleDependency.Insets]);
    }
@@ -232,16 +339,31 @@ index c0b60e0b39af4658bb2ac5270aa6368a3f0c2645..89699c0758b78dbd74b1086f2a663d5d
 +    UniwindStore.runtime.nitroInsets.top = insets.top ?? 0;
 +    UniwindStore.runtime.nitroInsets.left = insets.left ?? 0;
 +    UniwindStore.runtime.nitroInsets.right = insets.right ?? 0;
++    if (insets.navBarHeight !== undefined) {
++      UniwindStore.runtime.nitroHeader.navBarHeight = insets.navBarHeight;
++    }
++    if (insets.headerHeight !== undefined) {
++      UniwindStore.runtime.nitroHeader.height = insets.headerHeight;
++    }
++    if (insets.largeTitleNavBarHeight !== undefined) {
++      UniwindStore.runtime.nitroHeader.largeTitleNavBarHeight = insets.largeTitleNavBarHeight;
++    }
++    UniwindListener.notify([StyleDependency.Insets]);
++  }
++  updateNitroHeader(header) {
++    UniwindStore.runtime.nitroHeader.height = header.height ?? 0;
++    UniwindStore.runtime.nitroHeader.navBarHeight = header.navBarHeight ?? 0;
++    UniwindStore.runtime.nitroHeader.largeTitleNavBarHeight = header.largeTitleNavBarHeight ?? 0;
 +    UniwindListener.notify([StyleDependency.Insets]);
 +  }
    __reinit(generateStyleSheetCallback, themes, stylesFingerprint) {
      if (__DEV__ && stylesFingerprint !== void 0 && stylesFingerprint === this.stylesFingerprint) {
        return;
 diff --git a/dist/module/core/native/runtime.js b/dist/module/core/native/runtime.js
-index dbc5f309c682f03ba317980a6a4dbd9c627dcc4f..66f44725a7890c9c1487189872dea2595286ac5c 100644
+index dbc5f309c682f03ba317980a6a4dbd9c627dcc4f..095eec6bf6a241bd1711b13c8898b9089b99f1f9 100644
 --- a/dist/module/core/native/runtime.js
 +++ b/dist/module/core/native/runtime.js
-@@ -20,6 +20,12 @@ export const UniwindRuntime = {
+@@ -20,6 +20,17 @@ export const UniwindRuntime = {
      bottom: 0,
      right: 0
    },
@@ -251,14 +373,19 @@ index dbc5f309c682f03ba317980a6a4dbd9c627dcc4f..66f44725a7890c9c1487189872dea259
 +    bottom: 0,
 +    right: 0
 +  },
++  nitroHeader: {
++    height: 0,
++    navBarHeight: 0,
++    largeTitleNavBarHeight: 0
++  },
    colorMix,
    pixelRatio: (value) => value * PixelRatio.get(),
    cubicBezier: () => "",
 diff --git a/dist/module/core/types.d.ts b/dist/module/core/types.d.ts
-index 0635fe247485ff680eb090e2f0791658b45cf07b..9bb8dfe166f2aa8574ad604d9bcf690d59e9bfce 100644
+index 0635fe247485ff680eb090e2f0791658b45cf07b..6c2d3cdb8bd2f94b64c0c2f9d98bc774f515bddc 100644
 --- a/dist/module/core/types.d.ts
 +++ b/dist/module/core/types.d.ts
-@@ -42,6 +42,12 @@ export type UniwindRuntime = {
+@@ -42,6 +42,17 @@ export type UniwindRuntime = {
          left: number;
          right: number;
      };
@@ -268,11 +395,16 @@ index 0635fe247485ff680eb090e2f0791658b45cf07b..9bb8dfe166f2aa8574ad604d9bcf690d
 +        left: number;
 +        right: number;
 +    };
++    nitroHeader: {
++        height: number;
++        navBarHeight: number;
++        largeTitleNavBarHeight: number;
++    };
      hairlineWidth: number;
      pixelRatio: (value: number) => number;
      fontScale: (value: number) => number;
 diff --git a/dist/shared/uniwind.DJ5xwHGq.cjs b/dist/shared/uniwind.DJ5xwHGq.cjs
-index 466e21f49645e3e13b4645b6334dc498b0f7b7c8..4b48c7a4e4aaf249b352963c1c914cda0efc97b4 100644
+index 466e21f49645e3e13b4645b6334dc498b0f7b7c8..aec6426ad6d5e66f5e60e3aecbadae6c49ca94f3 100644
 --- a/dist/shared/uniwind.DJ5xwHGq.cjs
 +++ b/dist/shared/uniwind.DJ5xwHGq.cjs
 @@ -186,6 +186,10 @@ const generateCSSForInsets = () => {
@@ -282,12 +414,12 @@ index 466e21f49645e3e13b4645b6334dc498b0f7b7c8..4b48c7a4e4aaf249b352963c1c914cda
 +    let nitro = css;
 +  nitro = nitro.replace(/@utility ([a-z0-9-]+)-safe/g, '@utility $1-nitro-safe');
 +  nitro = nitro.replace(/env\(safe-area-inset-/g, 'env(nitro-safe-area-inset-');
-+  css = css + "\n\n" + nitro;
++  css = css + "\n\n" + nitro + "\n\n" + '/* ================= Header Utilities ================= */\n@utility h-header {\n    height: env(nitro-header-height);\n}\n\n@utility min-h-header {\n    min-height: env(nitro-header-height);\n}\n\n@utility max-h-header {\n    max-height: env(nitro-header-height);\n}\n\n@utility top-header {\n    top: env(nitro-header-height);\n}\n\n@utility top-header-offset-* {\n    top: calc(env(nitro-header-height) + --spacing(--value(integer)));\n    top: calc(env(nitro-header-height) + --value([length], --spacing-*));\n}\n\n@utility top-header-or-* {\n    top: max(env(nitro-header-height), --spacing(--value(integer)));\n    top: max(env(nitro-header-height), --value([length], --spacing-*));\n}\n\n@utility pt-header {\n    padding-top: env(nitro-header-height);\n}\n\n@utility pt-header-offset-* {\n    padding-top: calc(env(nitro-header-height) + --spacing(--value(integer)));\n    padding-top: calc(env(nitro-header-height) + --value([length], --spacing-*));\n}\n\n@utility pt-header-or-* {\n    padding-top: max(env(nitro-header-height), --spacing(--value(integer)));\n    padding-top: max(env(nitro-header-height), --value([length], --spacing-*));\n}\n\n@utility mt-header {\n    margin-top: env(nitro-header-height);\n}\n\n@utility mt-header-offset-* {\n    margin-top: calc(env(nitro-header-height) + --spacing(--value(integer)));\n    margin-top: calc(env(nitro-header-height) + --value([length], --spacing-*));\n}\n\n/* ================= Nav Bar Utilities ================= */\n@utility h-nav-bar {\n    height: env(nitro-nav-bar-height);\n}\n\n@utility min-h-nav-bar {\n    min-height: env(nitro-nav-bar-height);\n}\n\n@utility top-nav-bar {\n    top: env(nitro-nav-bar-height);\n}\n\n@utility top-nav-bar-offset-* {\n    top: calc(env(nitro-nav-bar-height) + --spacing(--value(integer)));\n    top: calc(env(nitro-nav-bar-height) + --value([length], --spacing-*));\n}\n\n@utility pt-nav-bar {\n    padding-top: env(nitro-nav-bar-height);\n}\n\n@utility pt-nav-bar-offset-* {\n    padding-top: calc(env(nitro-nav-bar-height) + --spacing(--value(integer)));\n    padding-top: calc(env(nitro-nav-bar-height) + --value([length], --spacing-*));\n}\n\n@utility pt-nav-bar-or-* {\n    padding-top: max(env(nitro-nav-bar-height), --spacing(--value(integer)));\n    padding-top: max(env(nitro-nav-bar-height), --value([length], --spacing-*));\n}\n\n@utility mt-nav-bar {\n    margin-top: env(nitro-nav-bar-height);\n}\n\n@utility mt-nav-bar-offset-* {\n    margin-top: calc(env(nitro-nav-bar-height) + --spacing(--value(integer)));\n    margin-top: calc(env(nitro-nav-bar-height) + --value([length], --spacing-*));\n}\n\n';
    return css.slice(0, -1);
  };
  const INSETS_CSS = generateCSSForInsets();
 diff --git a/dist/shared/uniwind.KV_8Ymgr.mjs b/dist/shared/uniwind.KV_8Ymgr.mjs
-index 36aba16db5a7c4f15c45476722ee9c592260e37f..2e04ba50758b9d69ff6e46e0576a144309f8378f 100644
+index 36aba16db5a7c4f15c45476722ee9c592260e37f..fcf0a6348d33056e2601f735ef69281d934da996 100644
 --- a/dist/shared/uniwind.KV_8Ymgr.mjs
 +++ b/dist/shared/uniwind.KV_8Ymgr.mjs
 @@ -178,6 +178,10 @@ const generateCSSForInsets = () => {
@@ -297,12 +429,12 @@ index 36aba16db5a7c4f15c45476722ee9c592260e37f..2e04ba50758b9d69ff6e46e0576a1443
 +    let nitro = css;
 +  nitro = nitro.replace(/@utility ([a-z0-9-]+)-safe/g, '@utility $1-nitro-safe');
 +  nitro = nitro.replace(/env\(safe-area-inset-/g, 'env(nitro-safe-area-inset-');
-+  css = css + "\n\n" + nitro;
++  css = css + "\n\n" + nitro + "\n\n" + '/* ================= Header Utilities ================= */\n@utility h-header {\n    height: env(nitro-header-height);\n}\n\n@utility min-h-header {\n    min-height: env(nitro-header-height);\n}\n\n@utility max-h-header {\n    max-height: env(nitro-header-height);\n}\n\n@utility top-header {\n    top: env(nitro-header-height);\n}\n\n@utility top-header-offset-* {\n    top: calc(env(nitro-header-height) + --spacing(--value(integer)));\n    top: calc(env(nitro-header-height) + --value([length], --spacing-*));\n}\n\n@utility top-header-or-* {\n    top: max(env(nitro-header-height), --spacing(--value(integer)));\n    top: max(env(nitro-header-height), --value([length], --spacing-*));\n}\n\n@utility pt-header {\n    padding-top: env(nitro-header-height);\n}\n\n@utility pt-header-offset-* {\n    padding-top: calc(env(nitro-header-height) + --spacing(--value(integer)));\n    padding-top: calc(env(nitro-header-height) + --value([length], --spacing-*));\n}\n\n@utility pt-header-or-* {\n    padding-top: max(env(nitro-header-height), --spacing(--value(integer)));\n    padding-top: max(env(nitro-header-height), --value([length], --spacing-*));\n}\n\n@utility mt-header {\n    margin-top: env(nitro-header-height);\n}\n\n@utility mt-header-offset-* {\n    margin-top: calc(env(nitro-header-height) + --spacing(--value(integer)));\n    margin-top: calc(env(nitro-header-height) + --value([length], --spacing-*));\n}\n\n/* ================= Nav Bar Utilities ================= */\n@utility h-nav-bar {\n    height: env(nitro-nav-bar-height);\n}\n\n@utility min-h-nav-bar {\n    min-height: env(nitro-nav-bar-height);\n}\n\n@utility top-nav-bar {\n    top: env(nitro-nav-bar-height);\n}\n\n@utility top-nav-bar-offset-* {\n    top: calc(env(nitro-nav-bar-height) + --spacing(--value(integer)));\n    top: calc(env(nitro-nav-bar-height) + --value([length], --spacing-*));\n}\n\n@utility pt-nav-bar {\n    padding-top: env(nitro-nav-bar-height);\n}\n\n@utility pt-nav-bar-offset-* {\n    padding-top: calc(env(nitro-nav-bar-height) + --spacing(--value(integer)));\n    padding-top: calc(env(nitro-nav-bar-height) + --value([length], --spacing-*));\n}\n\n@utility pt-nav-bar-or-* {\n    padding-top: max(env(nitro-nav-bar-height), --spacing(--value(integer)));\n    padding-top: max(env(nitro-nav-bar-height), --value([length], --spacing-*));\n}\n\n@utility mt-nav-bar {\n    margin-top: env(nitro-nav-bar-height);\n}\n\n@utility mt-nav-bar-offset-* {\n    margin-top: calc(env(nitro-nav-bar-height) + --spacing(--value(integer)));\n    margin-top: calc(env(nitro-nav-bar-height) + --value([length], --spacing-*));\n}\n\n';
    return css.slice(0, -1);
  };
  const INSETS_CSS = generateCSSForInsets();
 diff --git a/src/bundler/artifacts/css/insets.ts b/src/bundler/artifacts/css/insets.ts
-index 2137458dac866d2cfc5d1da7d0f26a9dd903bb45..5f25e34a582016309a9e7dff03befbca60022e87 100644
+index 2137458dac866d2cfc5d1da7d0f26a9dd903bb45..16178a076ff7595bad453e2d5a74f647ec7dbfc0 100644
 --- a/src/bundler/artifacts/css/insets.ts
 +++ b/src/bundler/artifacts/css/insets.ts
 @@ -150,6 +150,10 @@ const generateCSSForInsets = () => {
@@ -312,12 +444,12 @@ index 2137458dac866d2cfc5d1da7d0f26a9dd903bb45..5f25e34a582016309a9e7dff03befbca
 +        let nitro = css
 +    nitro = nitro.replace(/@utility ([a-z0-9-]+)-safe/g, '@utility $1-nitro-safe')
 +    nitro = nitro.replace(/env\(safe-area-inset-/g, 'env(nitro-safe-area-inset-')
-+    css = css + '\n\n' + nitro
++    css = css + '\n\n' + nitro + '\n\n' + '/* ================= Header Utilities ================= */\n@utility h-header {\n    height: env(nitro-header-height);\n}\n\n@utility min-h-header {\n    min-height: env(nitro-header-height);\n}\n\n@utility max-h-header {\n    max-height: env(nitro-header-height);\n}\n\n@utility top-header {\n    top: env(nitro-header-height);\n}\n\n@utility top-header-offset-* {\n    top: calc(env(nitro-header-height) + --spacing(--value(integer)));\n    top: calc(env(nitro-header-height) + --value([length], --spacing-*));\n}\n\n@utility top-header-or-* {\n    top: max(env(nitro-header-height), --spacing(--value(integer)));\n    top: max(env(nitro-header-height), --value([length], --spacing-*));\n}\n\n@utility pt-header {\n    padding-top: env(nitro-header-height);\n}\n\n@utility pt-header-offset-* {\n    padding-top: calc(env(nitro-header-height) + --spacing(--value(integer)));\n    padding-top: calc(env(nitro-header-height) + --value([length], --spacing-*));\n}\n\n@utility pt-header-or-* {\n    padding-top: max(env(nitro-header-height), --spacing(--value(integer)));\n    padding-top: max(env(nitro-header-height), --value([length], --spacing-*));\n}\n\n@utility mt-header {\n    margin-top: env(nitro-header-height);\n}\n\n@utility mt-header-offset-* {\n    margin-top: calc(env(nitro-header-height) + --spacing(--value(integer)));\n    margin-top: calc(env(nitro-header-height) + --value([length], --spacing-*));\n}\n\n/* ================= Nav Bar Utilities ================= */\n@utility h-nav-bar {\n    height: env(nitro-nav-bar-height);\n}\n\n@utility min-h-nav-bar {\n    min-height: env(nitro-nav-bar-height);\n}\n\n@utility top-nav-bar {\n    top: env(nitro-nav-bar-height);\n}\n\n@utility top-nav-bar-offset-* {\n    top: calc(env(nitro-nav-bar-height) + --spacing(--value(integer)));\n    top: calc(env(nitro-nav-bar-height) + --value([length], --spacing-*));\n}\n\n@utility pt-nav-bar {\n    padding-top: env(nitro-nav-bar-height);\n}\n\n@utility pt-nav-bar-offset-* {\n    padding-top: calc(env(nitro-nav-bar-height) + --spacing(--value(integer)));\n    padding-top: calc(env(nitro-nav-bar-height) + --value([length], --spacing-*));\n}\n\n@utility pt-nav-bar-or-* {\n    padding-top: max(env(nitro-nav-bar-height), --spacing(--value(integer)));\n    padding-top: max(env(nitro-nav-bar-height), --value([length], --spacing-*));\n}\n\n@utility mt-nav-bar {\n    margin-top: env(nitro-nav-bar-height);\n}\n\n@utility mt-nav-bar-offset-* {\n    margin-top: calc(env(nitro-nav-bar-height) + --spacing(--value(integer)));\n    margin-top: calc(env(nitro-nav-bar-height) + --value([length], --spacing-*));\n}\n\n'
      return css.slice(0, -1)
  }
  
 diff --git a/src/bundler/css-processor/addMetaToStylesTemplate.ts b/src/bundler/css-processor/addMetaToStylesTemplate.ts
-index 7625f2ff8f21cdbbc9b75822c061f41a22f2cc5d..61d01ed42006d92f16fd2f73d944912edca83015 100644
+index 7625f2ff8f21cdbbc9b75822c061f41a22f2cc5d..f037bcb99ff54a87b8f6f8682926e85e09047d16 100644
 --- a/src/bundler/css-processor/addMetaToStylesTemplate.ts
 +++ b/src/bundler/css-processor/addMetaToStylesTemplate.ts
 @@ -132,7 +132,7 @@ export const addMetaToStylesTemplate = (Processor: ProcessorBuilder) => {
@@ -325,26 +457,48 @@ index 7625f2ff8f21cdbbc9b75822c061f41a22f2cc5d..61d01ed42006d92f16fd2f73d944912e
                  }
  
 -                if (stringifiedEntries.includes('rt.insets')) {
-+                if (stringifiedEntries.includes('rt.insets') || stringifiedEntries.includes('rt.nitroInsets')) {
++                if (stringifiedEntries.includes('rt.insets') || stringifiedEntries.includes('rt.nitroInsets') || stringifiedEntries.includes('rt.nitroHeader')) {
                      dependencies.add(StyleDependency.Insets)
                  }
  
 diff --git a/src/bundler/css-processor/css.ts b/src/bundler/css-processor/css.ts
-index 0f1ff4f2c64a915455d924c668fb5b25254ddbbe..b603e57238e16669f1e3e36b4b27ebd8cd8ec9e0 100644
+index 0f1ff4f2c64a915455d924c668fb5b25254ddbbe..be2fbb946fa181fdf40c1145f8f3cac7e66200dc 100644
 --- a/src/bundler/css-processor/css.ts
 +++ b/src/bundler/css-processor/css.ts
-@@ -186,6 +186,11 @@ export class CSS {
+@@ -181,13 +181,26 @@ export class CSS {
  
-                         return `rt.insets.${inset}`
-                     }
-+                    if (declarationValue.value.name?.value?.startsWith('nitro-safe-area-inset-')) {
-+                        const inset = declarationValue.value.name.value.replace('nitro-safe-area-inset-', '')
-+
-+                        return `rt.nitroInsets.${inset}`
-+                    }
+                     return declarationValue.value
+                 case 'env':
+-                    if (declarationValue.value.name.type === 'ua' && declarationValue.value.name.value.startsWith('safe-area-inset-')) {
+-                        const inset = declarationValue.value.name.value.replace('safe-area-inset-', '')
+-
+-                        return `rt.insets.${inset}`
+-                    }
+-
+-                    this.logUnsupported(`Unsupported env value - ${JSON.stringify(declarationValue.value)}`)
++                    
++            const envName = declarationValue.value.name.type === "ua" || declarationValue.value.name.type === "unknown" ? declarationValue.value.name.value : declarationValue.value.name.type === "custom" ? declarationValue.value.name.ident : null;
++            if (envName && envName.startsWith("safe-area-inset-")) {
++              const inset = envName.replace("safe-area-inset-", "");
++              return `rt.insets.${inset}`;
++            }
++            if (envName && envName.startsWith("nitro-safe-area-inset-")) {
++              const inset = envName.replace("nitro-safe-area-inset-", "");
++              return `rt.nitroInsets.${inset}`;
++            }
++            if (envName === "nitro-header-height") {
++              return `rt.nitroHeader.height`;
++            }
++            if (envName === "nitro-nav-bar-height") {
++              return `rt.nitroHeader.navBarHeight`;
++            }
++            if (envName === "nitro-large-title-nav-bar-height") {
++              return `rt.nitroHeader.largeTitleNavBarHeight`;
++            }
++            this.logUnsupported(`Unsupported env value - ${JSON.stringify(declarationValue.value)}`)
  
-                     this.logUnsupported(`Unsupported env value - ${JSON.stringify(declarationValue.value)}`)
- 
+                     return undefined
+                 case 'time': {
 diff --git a/src/core/config/config.common.ts b/src/core/config/config.common.ts
 index a6b95ce92d769136cc624956fa6287cfbce81909..1797b82f4899cf697eb765fa421a698a8331bb26 100644
 --- a/src/core/config/config.common.ts
@@ -362,18 +516,34 @@ index a6b95ce92d769136cc624956fa6287cfbce81909..1797b82f4899cf697eb765fa421a698a
          return getCSSVariable(variableName, { scopedTheme: null, rtl: null, variables: null })
      }) as GetCSSVariable
 diff --git a/src/core/config/config.native.ts b/src/core/config/config.native.ts
-index 34c6761dec9f617c65c5251a6d471c58423ab4ed..75c65d1533ebb93509955d729a5f1e4da5afbfeb 100644
+index 34c6761dec9f617c65c5251a6d471c58423ab4ed..e166e0bb1d12efb1bfe99366480aa328ff04da4c 100644
 --- a/src/core/config/config.native.ts
 +++ b/src/core/config/config.native.ts
-@@ -38,6 +38,14 @@ class UniwindConfigBuilder extends UniwindConfigBuilderBase {
+@@ -38,6 +38,30 @@ class UniwindConfigBuilder extends UniwindConfigBuilderBase {
          UniwindListener.notify([StyleDependency.Insets])
      }
  
-+    updateNitroInsets(insets: Insets) {
++    updateNitroInsets(insets: Insets & { navBarHeight?: number; headerHeight?: number; largeTitleNavBarHeight?: number }) {
 +        UniwindStore.runtime.nitroInsets.bottom = insets.bottom ?? 0
 +        UniwindStore.runtime.nitroInsets.top = insets.top ?? 0
 +        UniwindStore.runtime.nitroInsets.left = insets.left ?? 0
 +        UniwindStore.runtime.nitroInsets.right = insets.right ?? 0
++        if (insets.navBarHeight !== undefined) {
++            UniwindStore.runtime.nitroHeader.navBarHeight = insets.navBarHeight
++        }
++        if (insets.headerHeight !== undefined) {
++            UniwindStore.runtime.nitroHeader.height = insets.headerHeight
++        }
++        if (insets.largeTitleNavBarHeight !== undefined) {
++            UniwindStore.runtime.nitroHeader.largeTitleNavBarHeight = insets.largeTitleNavBarHeight
++        }
++        UniwindListener.notify([StyleDependency.Insets])
++    }
++
++    updateNitroHeader(header: { height: number; navBarHeight: number; largeTitleNavBarHeight?: number }) {
++        UniwindStore.runtime.nitroHeader.height = header.height ?? 0
++        UniwindStore.runtime.nitroHeader.navBarHeight = header.navBarHeight ?? 0
++        UniwindStore.runtime.nitroHeader.largeTitleNavBarHeight = header.largeTitleNavBarHeight ?? 0
 +        UniwindListener.notify([StyleDependency.Insets])
 +    }
 +
@@ -381,10 +551,10 @@ index 34c6761dec9f617c65c5251a6d471c58423ab4ed..75c65d1533ebb93509955d729a5f1e4d
          generateStyleSheetCallback: GenerateStyleSheetsCallback,
          themes: Array<string>,
 diff --git a/src/core/native/runtime.ts b/src/core/native/runtime.ts
-index 6da4c656dac8945e19b41c9a8c7c27265af31628..400c7211a8c9ec9032b9c632373ca097fc637a16 100644
+index 6da4c656dac8945e19b41c9a8c7c27265af31628..d28196eb2f4fcbe0dfadf598a6d858dc62e5a46a 100644
 --- a/src/core/native/runtime.ts
 +++ b/src/core/native/runtime.ts
-@@ -23,6 +23,12 @@ export const UniwindRuntime = {
+@@ -23,6 +23,17 @@ export const UniwindRuntime = {
          bottom: 0,
          right: 0,
      },
@@ -393,6 +563,11 @@ index 6da4c656dac8945e19b41c9a8c7c27265af31628..400c7211a8c9ec9032b9c632373ca097
 +        left: 0,
 +        bottom: 0,
 +        right: 0,
++    },
++    nitroHeader: {
++        height: 0,
++        navBarHeight: 0,
++        largeTitleNavBarHeight: 0,
 +    },
      colorMix,
      pixelRatio: value => value * PixelRatio.get(),

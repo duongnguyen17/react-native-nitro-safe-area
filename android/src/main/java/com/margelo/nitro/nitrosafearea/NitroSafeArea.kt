@@ -7,6 +7,7 @@ import android.content.res.Resources
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.util.TypedValue
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewTreeObserver
@@ -373,6 +374,23 @@ class HybridNitroSafeArea : HybridNitroSafeAreaSpec() {
     val heightDp = (dm.heightPixels / density).toDouble()
     val frame = Rect(0.0, 0.0, widthDp, heightDp)
 
+    val isTablet = config.smallestScreenWidthDp >= 600
+    var navBarHeightDp = if (isTablet) 64.0 else (if (isLandscape) 48.0 else 56.0)
+
+    val currentTheme = activity?.theme ?: context?.theme
+    if (currentTheme != null) {
+      val tv = TypedValue()
+      if (currentTheme.resolveAttribute(android.R.attr.actionBarSize, tv, true)) {
+        val sizePx = TypedValue.complexToDimensionPixelSize(tv.data, dm)
+        if (sizePx > 0 && density > 0) {
+          navBarHeightDp = (sizePx / density).toDouble()
+        }
+      }
+    }
+
+    val headerHeightDp = topDp + navBarHeightDp
+    val largeTitleNavBarHeightDp = navBarHeightDp
+
     return SafeAreaMetrics(
       insets = insets,
       contentInsets = contentInsets,
@@ -382,7 +400,10 @@ class HybridNitroSafeArea : HybridNitroSafeAreaSpec() {
       sidebarWidth = 0.0,
       isTabBarHidden = isTabBarHidden,
       orientation = orientation,
-      frame = frame
+      frame = frame,
+      navBarHeight = navBarHeightDp,
+      headerHeight = headerHeightDp,
+      largeTitleNavBarHeight = largeTitleNavBarHeightDp
     )
   }
 
