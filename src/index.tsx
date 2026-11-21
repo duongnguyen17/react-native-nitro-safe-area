@@ -144,6 +144,19 @@ function areInsetsEqual(a: EdgeInsets, b: EdgeInsets): boolean {
   );
 }
 
+function areMetricsEqual(a: SafeAreaMetrics, b: SafeAreaMetrics): boolean {
+  return (
+    a.orientation === b.orientation &&
+    a.mode === b.mode &&
+    a.tabBarHeight === b.tabBarHeight &&
+    a.sidebarWidth === b.sidebarWidth &&
+    a.topCapsuleHeight === b.topCapsuleHeight &&
+    a.isTabBarHidden === b.isTabBarHidden &&
+    areInsetsEqual(a.insets, b.insets) &&
+    areInsetsEqual(a.contentInsets, b.contentInsets)
+  );
+}
+
 let cachedMetrics: SafeAreaMetrics | null = null;
 let cachedContentInsets: EdgeInsets | null = null;
 let cachedWindowInsets: EdgeInsets | null = null;
@@ -151,8 +164,11 @@ const hookListeners = new Set<() => void>();
 let nativeSubscription: (() => void) | null = null;
 
 function getMetricsSnapshot(): SafeAreaMetrics {
-  if (!cachedMetrics) {
-    cachedMetrics = getSafeArea();
+  if (!nativeSubscription || !cachedMetrics) {
+    const next = getSafeArea();
+    if (!cachedMetrics || !areMetricsEqual(cachedMetrics, next)) {
+      cachedMetrics = next;
+    }
   }
   return cachedMetrics;
 }
@@ -177,17 +193,25 @@ function subscribeToMetrics(onStoreChange: () => void): () => void {
   hookListeners.add(onStoreChange);
 
   if (!nativeSubscription) {
+    cachedMetrics = getMetricsSnapshot();
     nativeSubscription = addOnSafeAreaChangedListener((nextMetrics) => {
-      cachedMetrics = nextMetrics;
-      hookListeners.forEach((listener) => listener());
+      if (!cachedMetrics || !areMetricsEqual(cachedMetrics, nextMetrics)) {
+        cachedMetrics = nextMetrics;
+        hookListeners.forEach((listener) => listener());
+      }
     });
   }
 
   return () => {
     hookListeners.delete(onStoreChange);
-    if (hookListeners.size === 0 && nativeSubscription) {
-      nativeSubscription();
-      nativeSubscription = null;
+    if (hookListeners.size === 0) {
+      if (nativeSubscription) {
+        nativeSubscription();
+        nativeSubscription = null;
+      }
+      cachedMetrics = null;
+      cachedContentInsets = null;
+      cachedWindowInsets = null;
     }
   };
 }

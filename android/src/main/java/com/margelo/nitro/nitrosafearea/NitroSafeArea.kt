@@ -25,6 +25,9 @@ class HybridNitroSafeArea : HybridNitroSafeAreaSpec() {
   private val listeners = ConcurrentHashMap<String, (SafeAreaMetrics) -> Unit>()
   @Volatile private var lastNotifiedMetrics: SafeAreaMetrics? = null
   private var layoutListener: ViewTreeObserver.OnGlobalLayoutListener? = null
+  private var preDrawListener: ViewTreeObserver.OnPreDrawListener? = null
+  private var lastObservedInsets: WindowInsetsCompat? = null
+  @Volatile private var lastBottomNavOffscreen: Boolean? = null
   @Volatile private var attachedDecorView: View? = null
   private var componentCallbacks: ComponentCallbacks2? = null
   private var registeredActivity: WeakReference<Activity>? = null
@@ -81,7 +84,7 @@ class HybridNitroSafeArea : HybridNitroSafeAreaSpec() {
         }
         override fun onHostPause() {}
         override fun onHostDestroy() {
-          cleanup()
+          cleanupListeners()
         }
       }
       lifecycleListener = listener
@@ -94,15 +97,6 @@ class HybridNitroSafeArea : HybridNitroSafeAreaSpec() {
       val window = activity.window ?: return@runOnUiThread
       val decorView = window.decorView
 
-      // Ensure layout in display cutout so insets are reported for camera punch hole / notch
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-        val params = window.attributes
-        if (params.layoutInDisplayCutoutMode != WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES) {
-          params.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
-          window.attributes = params
-        }
-      }
-
       if (attachedDecorView === decorView && layoutListener != null) {
         return@runOnUiThread
       }
@@ -111,17 +105,48 @@ class HybridNitroSafeArea : HybridNitroSafeAreaSpec() {
       cleanupListeners()
 
       attachedDecorView = decorView
+      // Discover bottom nav initially when view attaches
+      findBottomNavigationView(decorView)
+
       val listener = ViewTreeObserver.OnGlobalLayoutListener {
         scheduleNotify()
       }
       layoutListener = listener
       decorView.viewTreeObserver.addOnGlobalLayoutListener(listener)
 
-      // Listen for window insets changes
-      ViewCompat.setOnApplyWindowInsetsListener(decorView) { _, insets ->
-        scheduleNotify()
-        insets
+      // Listen for window insets and bottom tab slide animations non-invasively via OnPreDrawListener
+      // Catches status bar / navigation bar visibility toggles, keyboard shifts, and scroll-to-hide tabs
+      // Zero view-tree traversal on pre-draw: only inspects cached view instance if present (O(1))
+      val preDraw = ViewTreeObserver.OnPreDrawListener {
+        var changed = false
+        val currentInsets = ViewCompat.getRootWindowInsets(decorView)
+        if (currentInsets != null && currentInsets != lastObservedInsets) {
+          lastObservedInsets = currentInsets
+          changed = true
+        }
+
+        // Fast path: inspect only the already-cached bottom nav view (0 DFS traversal)
+        val bottomNav = cachedBottomNavRef?.get()
+        if (bottomNav != null && bottomNav.isAttachedToWindow) {
+          val isOffscreen = bottomNav.visibility != View.VISIBLE ||
+                            bottomNav.height == 0 ||
+                            bottomNav.translationY >= (bottomNav.height * 0.5f)
+          if (isOffscreen != lastBottomNavOffscreen) {
+            lastBottomNavOffscreen = isOffscreen
+            changed = true
+          }
+        } else if (lastBottomNavOffscreen != null) {
+          lastBottomNavOffscreen = null
+          changed = true
+        }
+
+        if (changed) {
+          scheduleNotify()
+        }
+        true
       }
+      preDrawListener = preDraw
+      decorView.viewTreeObserver.addOnPreDrawListener(preDraw)
 
       // Listen for configuration (orientation) changes
       val callbacks = object : ComponentCallbacks2 {
@@ -140,17 +165,22 @@ class HybridNitroSafeArea : HybridNitroSafeAreaSpec() {
   }
 
   private fun cleanupListeners() {
-    // 1. Remove DecorView layout listener
+    // 1. Remove DecorView layout and pre-draw listeners
     attachedDecorView?.let { oldView ->
-      layoutListener?.let { oldListener ->
-        if (oldView.viewTreeObserver.isAlive) {
+      if (oldView.viewTreeObserver.isAlive) {
+        layoutListener?.let { oldListener ->
           oldView.viewTreeObserver.removeOnGlobalLayoutListener(oldListener)
         }
+        preDrawListener?.let { oldPreDraw ->
+          oldView.viewTreeObserver.removeOnPreDrawListener(oldPreDraw)
+        }
       }
-      ViewCompat.setOnApplyWindowInsetsListener(oldView, null)
     }
     attachedDecorView = null
     layoutListener = null
+    preDrawListener = null
+    lastObservedInsets = null
+    lastBottomNavOffscreen = null
 
     // 2. Unregister ComponentCallbacks2 from registered activity
     registeredActivity?.get()?.let { act ->
@@ -236,6 +266,7 @@ class HybridNitroSafeArea : HybridNitroSafeAreaSpec() {
     var leftDp = 0.0
     var rightDp = 0.0
 
+    var hasWindowInsets = false
     if (decorView != null) {
       val windowInsets = ViewCompat.getRootWindowInsets(decorView)
         ?: (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -243,6 +274,7 @@ class HybridNitroSafeArea : HybridNitroSafeAreaSpec() {
         } else null)
 
       if (windowInsets != null) {
+        hasWindowInsets = true
         val systemBarsInsets = windowInsets.getInsets(
           WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
         )
@@ -273,8 +305,8 @@ class HybridNitroSafeArea : HybridNitroSafeAreaSpec() {
     val isLandscape = config.orientation == Configuration.ORIENTATION_LANDSCAPE
     val orientation = if (isLandscape) DeviceOrientation.LANDSCAPE else DeviceOrientation.PORTRAIT
 
-    // Fallback for top status bar if not yet attached in portrait
-    if (topDp == 0.0 && !isLandscape) {
+    // Fallback for top status bar ONLY when WindowInsets are not yet attached on cold launch
+    if (!hasWindowInsets && !isLandscape) {
       val res = activity?.resources ?: context?.resources ?: Resources.getSystem()
       val statusBarResId = res.getIdentifier("status_bar_height", "dimen", "android")
       if (statusBarResId > 0) {

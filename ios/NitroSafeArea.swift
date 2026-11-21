@@ -130,7 +130,7 @@ public class HybridNitroSafeArea: HybridNitroSafeAreaSpec {
 
     if let tabVC = tabBarController {
       let tabBar = tabVC.tabBar
-      isTabBarHidden = tabBar.isHidden
+      isTabBarHidden = tabBar.isHidden || tabBar.alpha <= 0.01
 
       if observedTabBarController !== tabVC {
         attachTabBarControllerKVO(tabVC: tabVC)
@@ -138,7 +138,7 @@ public class HybridNitroSafeArea: HybridNitroSafeAreaSpec {
 
       if !isPad {
         // iPhone: Bottom Tab Bar
-        if !tabBar.isHidden {
+        if !isTabBarHidden {
           mode = .iphoneBottomTab
           tabBarHeight = Double(tabBar.frame.height)
           if tabBarHeight > 0 {
@@ -148,72 +148,65 @@ public class HybridNitroSafeArea: HybridNitroSafeAreaSpec {
       } else {
         // iPad: iPadOS 18+ Sidebar or Floating Top Capsule
         if #available(iOS 18.0, *) {
-          if tabVC.sidebar.preferredLayout != .overlap {
-            tabVC.sidebar.preferredLayout = .overlap
-          }
-
           if !tabVC.sidebar.isHidden {
-            // iPad Leftside Sidebar mode: sidebar overlays left (~320pt standard or measured),
-            // so contentLeft is set to sidebarWidth to push content out (pl-safe / px-safe)
-            mode = .ipadLeftSidebar
             var measuredWidth: Double = 320.0
             if let sidebarView = tabVC.view.subviews.first(where: {
               String(describing: type(of: $0)).contains("Sidebar")
             }), sidebarView.frame.width > 0 {
               measuredWidth = Double(sidebarView.frame.width)
             }
-            sidebarWidth = measuredWidth
-            contentLeft = sidebarWidth
-            contentTop = Double(windowInsets.top)
-          } else {
+
+            // Check if sidebar overlaps content:
+            // - preferredLayout == .overlap: explicitly overlays content
+            // - preferredLayout == .automatic: overlay if content view starts at x == 0 under the sidebar
+            let isOverlapping: Bool
+            if tabVC.sidebar.preferredLayout == .overlap {
+              isOverlapping = true
+            } else if tabVC.sidebar.preferredLayout == .tile {
+              isOverlapping = false
+            } else {
+              if let contentView = tabVC.selectedViewController?.view ?? topVC?.view {
+                isOverlapping = contentView.frame.origin.x < 10.0
+              } else {
+                isOverlapping = false
+              }
+            }
+
+            if isOverlapping {
+              mode = .ipadLeftSidebar
+              sidebarWidth = measuredWidth
+              contentLeft = sidebarWidth
+              contentTop = Double(windowInsets.top)
+            } else {
+              // Tiled layout: UIKit positions content view alongside sidebar, so content does not overlap
+              mode = .none
+              sidebarWidth = 0.0
+            }
+          } else if !isTabBarHidden {
             // iPad Floating Top Capsule mode (collapsed sidebar or standard tab mode)
-            mode = .ipadTopCapsule
             let tabFrame = tabBar.frame
             if tabFrame.origin.y < screenBounds.height / 2 && tabFrame.height > 0 {
+              mode = .ipadTopCapsule
               topCapsuleHeight = Double(tabFrame.origin.y + tabFrame.height)
               contentTop = max(Double(windowInsets.top), topCapsuleHeight)
             } else if let viewInsets = topVC?.view.safeAreaInsets, viewInsets.top > windowInsets.top {
+              mode = .ipadTopCapsule
               topCapsuleHeight = Double(viewInsets.top)
               contentTop = topCapsuleHeight
             } else {
-              topCapsuleHeight = Double(windowInsets.top) + 64.0
-              contentTop = topCapsuleHeight
+              // Standard bottom tab bar on iPad
+              mode = .iphoneBottomTab
+              tabBarHeight = Double(tabBar.frame.height)
+              contentBottom = max(Double(windowInsets.bottom), tabBarHeight)
             }
           }
         } else {
           // Pre-iOS 18 iPad
-          if !tabBar.isHidden {
+          if !isTabBarHidden {
             mode = .iphoneBottomTab
             tabBarHeight = Double(tabBar.frame.height)
             contentBottom = max(Double(windowInsets.bottom), tabBarHeight)
           }
-        }
-
-        // Cache last known iPad mode for zero-frame startup prediction
-        let modeKey = (mode == .ipadTopCapsule) ? "ipad_top_capsule" : "ipad_left_sidebar"
-        UserDefaults.standard.set(modeKey, forKey: "nitro_safe_area_last_pad_mode")
-      }
-    } else {
-      // TabBarController not yet mounted in hierarchy (cold start Frame 0)
-      if isPad {
-        let lastModeString = UserDefaults.standard.string(forKey: "nitro_safe_area_last_pad_mode")
-        if isLandscape {
-          // On iPad Landscape, default to Leftside Sidebar (320pt) unless previously collapsed to capsule
-          if lastModeString == "ipad_top_capsule" {
-            mode = .ipadTopCapsule
-            topCapsuleHeight = Double(windowInsets.top) + 64.0
-            contentTop = topCapsuleHeight
-          } else {
-            mode = .ipadLeftSidebar
-            sidebarWidth = 320.0
-            contentLeft = sidebarWidth
-            contentTop = Double(windowInsets.top)
-          }
-        } else {
-          // On iPad Portrait, always top capsule
-          mode = .ipadTopCapsule
-          topCapsuleHeight = Double(windowInsets.top) + 64.0
-          contentTop = topCapsuleHeight
         }
       }
     }
@@ -307,7 +300,6 @@ public class HybridNitroSafeArea: HybridNitroSafeAreaSpec {
     sidebarKvoTokens.removeAll()
 
     if #available(iOS 18.0, *) {
-      tabVC.sidebar.preferredLayout = .overlap
       let sidebarHiddenToken = tabVC.sidebar.observe(\.isHidden, options: [.new]) { [weak self] _, _ in
         self?.notifyListeners()
       }
@@ -331,7 +323,10 @@ public class HybridNitroSafeArea: HybridNitroSafeAreaSpec {
     let frameToken = tabBar.observe(\.frame, options: [.new]) { [weak self] _, _ in
       self?.notifyListeners()
     }
-    tabBarKvoTokens.append(contentsOf: [hiddenToken, frameToken])
+    let alphaToken = tabBar.observe(\.alpha, options: [.new]) { [weak self] _, _ in
+      self?.notifyListeners()
+    }
+    tabBarKvoTokens.append(contentsOf: [hiddenToken, frameToken, alphaToken])
   }
 
   private func metricsAreEqual(_ a: SafeAreaMetrics, _ b: SafeAreaMetrics) -> Bool {

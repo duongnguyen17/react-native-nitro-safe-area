@@ -4,7 +4,7 @@
 [![npm downloads](https://img.shields.io/npm/dm/@2security%2Fnitro-safe-area.svg)](https://www.npmjs.com/package/@2security/nitro-safe-area)
 [![MIT License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-An ultra-high-performance, **zero-frame-latency** Safe Area & Adaptive Navigation Insets library for React Native built with **Nitro Modules**. Delivers synchronous C++/JSI insets lookup, automatic native bottom tab detection across iOS and Android, iPadOS 18 adaptive navigation (Leftside Sidebar & Top Floating Capsule), and seamless Uniwind / Tailwind CSS v4 variable synchronization with **zero layout shifts**.
+An ultra-high-performance, **zero-frame-latency** Safe Area & Adaptive Navigation Insets library for React Native built with **Nitro Modules**. Delivers synchronous C++/JSI insets lookup, automatic native bottom tab detection across iOS and Android, iPadOS 18 adaptive navigation (Leftside Sidebar & Top Floating Capsule), and seamless Uniwind / Tailwind CSS v4 variable synchronization by synchronously querying native layout insets at startup.
 
 ---
 
@@ -48,12 +48,12 @@ App Cold Launch ──> Synchronous JSI Memory Read (Insets: 59px at 0ms) ──
   - `contentInsets`: Semantic insets adjusted for active navigation Chrome (Bottom Tabs, iPad Sidebar, Top Capsule).
 - 📑 **iPadOS 18 Adaptive Navigation**: Real-time detection and transitions between **Leftside Sidebar** (~320pt) and **Top Floating Capsule** (~88pt) with cold-start Frame 0 prediction via `UserDefaults`.
 - 📷 **Edge-to-Edge & Camera Cutout Precision**:
-  - **Android**: Configures `LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES` and extracts `WindowInsetsCompat.Type.displayCutout()` so landscape punch holes are properly padded (`Left Inset = 54.1pt`).
+  - **Android**: Extracts `WindowInsetsCompat.Type.displayCutout()` non-invasively so landscape punch holes are properly padded (`Left Inset = 54.1pt`).
   - **iOS**: Adheres to Apple's **Symmetrical Gutter Principle** (`Left Inset == Right Inset == 62.0pt` on iPhone 16/18 Pro) for visual balance and muscle memory.
 - 🎨 **Uniwind & Tailwind CSS v4 First-Class**: Synchronously pushes insets into Uniwind's runtime store at Frame 0 via `syncWithUniwind(Uniwind)`. All utility classes (`pt-safe`, `pb-safe`, `px-safe-offset-5`, `pb-safe-offset-5`) work out of the box with zero component wrappers.
 - 🔄 **30ms Event Coalescing (Debounce)**: Coalesces rapid sequential hardware rotation events (orientation -> window bounds -> layoutSubviews) into a single atomic JavaScript update, eliminating redundant re-renders.
 - 🛡️ **Leak-Free Enterprise Architecture**:
-  - **Android**: `WeakReference<Activity>`, `ComponentCallbacks2` unregistration, and `LifecycleEventListener` cleanup on `onHostDestroy()`.
+  - **Android**: `WeakReference<Activity>`, `ComponentCallbacks2` unregistration on `onHostDestroy()`, with persistent `LifecycleEventListener` on `ReactApplicationContext` to re-bind on Activity recreation.
   - **iOS**: Weak references for all observed UIViews and complete KVO token invalidation in `deinit`.
   - **Multi-threaded Safety**: `@Volatile` variables in Kotlin, `NSLock` and `DispatchQueue.main.sync` with `Thread.isMainThread` guard in Swift.
 
@@ -241,10 +241,10 @@ Here is a comprehensive comparison of how safe area concepts and native features
 | **Native Bottom Tab Detection** | Inspects `UITabBarController.tabBar` frame and visibility. | Recursive DFS view tree search for `BottomNavigationView` / `NavigationBarView` with `WeakReference` caching. | ✅ **Identical** (Auto-detected) |
 | **Tab Bar Height Compensation** | `contentInsets.bottom = max(window.bottom, tabBar.height)` (~83pt). | `contentInsets.bottom = max(window.bottom, tabBar.height)` (~104pt). | ✅ **Identical** |
 | **Animated Tab Bar (Scroll-to-Hide)** | KVO on `tabBar.isHidden` and `tabBar.frame`. | Dynamic detection of `translationY >= height * 0.5f`. | ✅ **Identical** |
-| **Landscape Cutout / Punch Hole** | **Symmetrical Gutter Principle**: Apple sets `left == right == 62.0pt` on iPhone 16/18 Pro for visual balance and muscle memory. | **Hardware-Accurate**: Android sets `left: 54.1pt, right: 0.0pt` to precisely match the punch hole location via `LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES`. | ✅ **Platform-Idiomatic** |
-| **Adaptive Sidebar Navigation** | iPadOS 18 `tabVC.sidebar.preferredLayout = .overlap` (`sidebarWidth = 320pt`). | Returns `mode: 'none'`, `sidebarWidth: 0` (Android tablets use standard navigation rails). | ✅ **Platform-Idiomatic** |
+| **Landscape Cutout / Punch Hole** | **Symmetrical Gutter Principle**: Apple sets `left == right == 62.0pt` on iPhone 16/18 Pro for visual balance and muscle memory. | **Hardware-Accurate**: Android sets `left: 54.1pt, right: 0.0pt` to precisely match the punch hole location based on system window insets (strictly read-only, non-invasive). | ✅ **Platform-Idiomatic** |
+| **Adaptive Sidebar Navigation** | iPadOS 18 non-invasive sidebar inspection (`sidebarWidth = 320pt` when overlapping, `mode: 'none'` when tiled). | Returns `mode: 'none'`, `sidebarWidth: 0` (Android tablets use standard navigation rails). | ✅ **Platform-Idiomatic** |
 | **Floating Top Capsule** | iPadOS 18 `tabBar.frame.origin.y` inspection (`topCapsuleHeight = 88pt`). | Returns `mode: 'none'`, `topCapsuleHeight: 0`. | ✅ **Platform-Idiomatic** |
-| **Memory & Lifecycle Safety** | `deinit` cleans up all KVO tokens and NotificationCenter observers; weak references for all UIViews. | `WeakReference<Activity>`, `ComponentCallbacks2` unregistration, and `LifecycleEventListener` cleanup on `onHostDestroy()`. | ✅ **Identical** (Zero leaks) |
+| **Memory & Lifecycle Safety** | `deinit` cleans up all KVO tokens and NotificationCenter observers; weak references for all UIViews. | `WeakReference<Activity>`, `ComponentCallbacks2` unregistration on `onHostDestroy()`, with persistent `LifecycleEventListener` on `ReactApplicationContext` to re-bind on Activity recreation. | ✅ **Identical** (Zero leaks) |
 | **Thread Safety** | `NSLock` protecting shared listeners and last notified state; `@MainActor` considerations. | `@Volatile` variables on shared state (`attachedDecorView`, `lastNotifiedMetrics`) and `synchronized(lock)`. | ✅ **Identical** (Thread-safe) |
 | **Modern OS Standards** | Supports iOS 13 through iOS 18+; avoids deprecated `UIScreen.main`. | Supports Android 7.0 (API 24) through Android 15 (API 35); 16KB Page Size support. | ✅ **Identical** |
 
