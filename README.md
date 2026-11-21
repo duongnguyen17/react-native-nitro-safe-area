@@ -8,14 +8,6 @@ An ultra-high-performance, **zero-frame-latency** Safe Area & Adaptive Navigatio
 
 ---
 
-## 📱 Previews
-
-| iPad Leftside Sidebar (~320pt) | iPad Floating Top Capsule (~88pt) | Android Camera Cutout (Landscape) |
-| :---: | :---: | :---: |
-| <img src="./assets/ipad_left_sidebar.png" width="280" /> | <img src="./assets/ipad_top_capsule.png" width="280" /> | <img src="./assets/android_landscape.png" width="280" /> |
-
----
-
 ## ⚡ Why @2security/nitro-safe-area?
 
 ### The 1-Frame Layout Shift Problem
