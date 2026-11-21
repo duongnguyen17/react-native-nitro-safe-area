@@ -2,11 +2,13 @@ import { useSafeAreaMetrics } from '@2security/nitro-safe-area';
 import { useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import Animated, { LinearTransition } from 'react-native-reanimated';
+import { useRenderCount } from '../hooks/useRenderCount';
 
 const transition = LinearTransition.duration(300);
 
 export const ExploreScreen = () => {
   const metrics = useSafeAreaMetrics();
+  const renderCount = useRenderCount();
   const [expandedCard, setExpandedCard] = useState<number | null>(null);
 
   const getModeLabel = () => {
@@ -48,17 +50,32 @@ export const ExploreScreen = () => {
             <Text className="text-sky-600 font-bold text-xs uppercase tracking-wider">
               ⚡ Nitro Safe Area + Uniwind
             </Text>
-            <View className="bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-300">
-              <Text className="text-emerald-700 text-[10px] font-bold">
-                0ms JSI Sync
-              </Text>
+            <View className="flex-row items-center gap-1.5">
+              <View className="bg-amber-100 px-2 py-0.5 rounded-full border border-amber-300">
+                <Text className="text-amber-800 text-[10px] font-bold">
+                  Render #{renderCount}
+                </Text>
+              </View>
+              <View className="bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-300">
+                <Text className="text-emerald-700 text-[10px] font-bold">
+                  0ms JSI Sync
+                </Text>
+              </View>
             </View>
           </View>
 
-          <Text className="text-slate-800 font-semibold text-xs mb-1">
-            Current Mode:{' '}
-            <Text className="text-sky-600 font-bold">{getModeLabel()}</Text>
-          </Text>
+          <View className="flex-row items-center justify-between mb-1">
+            <Text className="text-slate-800 font-semibold text-xs">
+              Current Mode:{' '}
+              <Text className="text-sky-600 font-bold">{getModeLabel()}</Text>
+            </Text>
+            <Text className="text-slate-500 text-xs">
+              Renders:{' '}
+              <Text className="font-mono font-bold text-amber-700">
+                {renderCount}
+              </Text>
+            </Text>
+          </View>
           <Text className="text-slate-500 text-xs mb-3">
             Orientation:{' '}
             <Text className="text-slate-900 font-mono font-bold">

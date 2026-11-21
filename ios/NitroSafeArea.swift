@@ -5,6 +5,7 @@ public class HybridNitroSafeArea: HybridNitroSafeAreaSpec {
   private let lock = NSLock()
   private var listeners: [UUID: (SafeAreaMetrics) -> Void] = [:]
   private var lastNotifiedMetrics: SafeAreaMetrics?
+  private var pendingNotifyWorkItem: DispatchWorkItem?
   private var observers: [NSObjectProtocol] = []
   private var windowKvoTokens: [NSKeyValueObservation] = []
   private var tabBarKvoTokens: [NSKeyValueObservation] = []
@@ -30,6 +31,8 @@ public class HybridNitroSafeArea: HybridNitroSafeAreaSpec {
     sidebarKvoTokens.forEach { $0.invalidate() }
     sidebarKvoTokens.removeAll()
     lock.lock()
+    pendingNotifyWorkItem?.cancel()
+    pendingNotifyWorkItem = nil
     listeners.removeAll()
     lastNotifiedMetrics = nil
     lock.unlock()
@@ -326,7 +329,27 @@ public class HybridNitroSafeArea: HybridNitroSafeAreaSpec {
            a.sidebarWidth == b.sidebarWidth
   }
 
-  private func notifyListeners() {
+  private func notifyListeners(debounce: Bool = true) {
+    lock.lock()
+    pendingNotifyWorkItem?.cancel()
+
+    let workItem = DispatchWorkItem { [weak self] in
+      self?.performNotifyListeners()
+    }
+    pendingNotifyWorkItem = workItem
+    lock.unlock()
+
+    if debounce {
+      // Coalesces rapid sequential UIKit events during rotation:
+      // (1) orientation change -> (2) window bounds resize -> (3) adaptive sidebar/capsule layout
+      // into a single atomic update for JavaScript, preventing duplicate re-renders.
+      DispatchQueue.main.asyncAfter(deadline: .now() + 0.03, execute: workItem)
+    } else {
+      DispatchQueue.main.async(execute: workItem)
+    }
+  }
+
+  private func performNotifyListeners() {
     lock.lock()
     let currentListeners = Array(listeners.values)
     lock.unlock()
