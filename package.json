@@ -1,6 +1,6 @@
 {
   "name": "@2security/nitro-safe-area",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "⚡ Zero-latency synchronous Safe Area & Native Tab/Sidebar insets for React Native via Nitro Modules",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",
