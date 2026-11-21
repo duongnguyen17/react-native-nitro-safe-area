@@ -15,6 +15,20 @@ export interface EdgeInsets {
 }
 
 /**
+ * Represents a 2D bounding rectangle in density-independent pixels (dp/pt).
+ */
+export interface Rect {
+  /** The X-coordinate of the rectangle's origin. */
+  x: number;
+  /** The Y-coordinate of the rectangle's origin. */
+  y: number;
+  /** The width of the rectangle. */
+  width: number;
+  /** The height of the rectangle. */
+  height: number;
+}
+
+/**
  * Navigation UI display mode detected from the native UIKit / Android view hierarchy.
  *
  * - `'iphone_bottom_tab'`: Native bottom tab bar on iPhone (or Android navigation bar).
@@ -80,6 +94,11 @@ export interface SafeAreaMetrics {
    * Current physical screen orientation (`'portrait'` | `'landscape'`).
    */
   orientation: DeviceOrientation;
+
+  /**
+   * Window / screen bounds rectangle in density-independent pixels (points on iOS, dp on Android).
+   */
+  frame: Rect;
 }
 
 /**
@@ -109,4 +128,12 @@ export interface NitroSafeArea extends HybridObject<{
   addOnSafeAreaChangedListener(
     listener: (metrics: SafeAreaMetrics) => void
   ): () => void;
+
+  /**
+   * Configures whether iPadOS 18 adaptive navigation (sidebar / top capsule) pre-seeding
+   * is enabled at the native layer during cold startup before React Navigation mounts.
+   *
+   * @param enabled Set to `true` if your app uses iPadOS 18 native tab / sidebar navigation.
+   */
+  setAdaptiveNavigationEnabled(enabled: boolean): void;
 }

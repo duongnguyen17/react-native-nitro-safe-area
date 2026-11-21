@@ -4,6 +4,7 @@ import type {
   NitroSafeArea as NitroSafeAreaSpec,
   SafeAreaMetrics,
   EdgeInsets,
+  Rect,
   NavigationMode,
   DeviceOrientation,
 } from './NitroSafeArea.nitro';
@@ -12,6 +13,7 @@ export type {
   NitroSafeAreaSpec,
   SafeAreaMetrics,
   EdgeInsets,
+  Rect,
   NavigationMode,
   DeviceOrientation,
 };
@@ -101,6 +103,54 @@ export function getWindowInsets(): EdgeInsets {
 }
 
 /**
+ * Initial metrics structure compatible with `<SafeAreaProvider initialMetrics={...}>` from `react-native-safe-area-context`.
+ */
+export interface InitialMetrics {
+  insets: EdgeInsets;
+  frame: Rect;
+}
+
+/**
+ * Returns initial metrics formatted directly for `<SafeAreaProvider initialMetrics={...}>` from `react-native-safe-area-context`.
+ *
+ * @remarks
+ * Combines synchronous JSI safe area insets with native window dimensions.
+ * Using this directly in `SafeAreaProvider` eliminates manual boilerplate and avoids importing `Dimensions` in `App.tsx`.
+ *
+ * @param options Optional configuration. Set `useContentInsets: true` to provide navigation-adjusted content insets.
+ *
+ * @example
+ * ```tsx
+ * import { SafeAreaProvider } from 'react-native-safe-area-context';
+ * import { getInitialMetrics } from '@2security/nitro-safe-area';
+ *
+ * export default function App() {
+ *   return (
+ *     <SafeAreaProvider initialMetrics={getInitialMetrics()}>
+ *       <RootNavigator />
+ *     </SafeAreaProvider>
+ *   );
+ * }
+ * ```
+ */
+export function getInitialMetrics(options?: {
+  useContentInsets?: boolean;
+  adaptiveNavigation?: boolean;
+}): InitialMetrics {
+  if (options?.adaptiveNavigation) {
+    NitroSafeArea.setAdaptiveNavigationEnabled(true);
+  }
+  const metrics = NitroSafeArea.getSafeArea();
+  const insets = options?.useContentInsets
+    ? metrics.contentInsets
+    : metrics.insets;
+  return {
+    insets,
+    frame: metrics.frame,
+  };
+}
+
+/**
  * Registers a native callback invoked whenever safe area insets, device orientation,
  * or navigation mode (tab bar / sidebar) changes.
  *
@@ -135,12 +185,20 @@ export function addOnSafeAreaChangedListener(
 // High-Performance React Store (useSyncExternalStore)
 // =============================================================================
 
-function areInsetsEqual(a: EdgeInsets, b: EdgeInsets): boolean {
+function areInsetsEqual(a?: EdgeInsets | null, b?: EdgeInsets | null): boolean {
+  if (!a || !b) return a === b;
   return (
     a.top === b.top &&
     a.left === b.left &&
     a.bottom === b.bottom &&
     a.right === b.right
+  );
+}
+
+function areRectsEqual(a?: Rect | null, b?: Rect | null): boolean {
+  if (!a || !b) return a === b;
+  return (
+    a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height
   );
 }
 
@@ -153,7 +211,8 @@ function areMetricsEqual(a: SafeAreaMetrics, b: SafeAreaMetrics): boolean {
     a.topCapsuleHeight === b.topCapsuleHeight &&
     a.isTabBarHidden === b.isTabBarHidden &&
     areInsetsEqual(a.insets, b.insets) &&
-    areInsetsEqual(a.contentInsets, b.contentInsets)
+    areInsetsEqual(a.contentInsets, b.contentInsets) &&
+    areRectsEqual(a.frame, b.frame)
   );
 }
 
@@ -342,49 +401,80 @@ export interface UniwindLike {
 }
 
 /**
- * Synchronizes `@2security/nitro-safe-area` directly with Uniwind's Tailwind CSS v4 runtime engine.
+ * Options for Uniwind safe area synchronization.
+ */
+export interface SyncWithUniwindOptions {
+  /**
+   * If `true`, synchronizes raw physical window insets instead of content insets.
+   * @default false
+   */
+  useWindowInsets?: boolean;
+
+  /**
+   * If `true`, enables automatic iPadOS 18+ adaptive navigation pre-seeding at Frame 0.
+   *
+   * @remarks
+   * On iPadOS 18+, UIKit mounts native tabs adaptively as either a floating top capsule (~88pt top)
+   * in portrait or a left sidebar (~320pt left) in landscape. Because JavaScript executes before
+   * UIKit mounts the tab controller, native initially reports only status bar insets (24pt).
+   *
+   * Set this to `true` if your iPad app uses iPadOS 18 native tab/sidebar navigation
+   * to eliminate the 1-frame async layout shift when UIKit finishes layout.
+   *
+   * @default false
+   */
+  adaptiveNavigation?: boolean;
+}
+
+/**
+ * Synchronizes safe area insets into the Uniwind Tailwind CSS runtime.
  *
  * @remarks
- * **Why use this?**
- * - **Replaces Uniwind Pro Native Insets**: Uniwind Free normally requires wrapping your tree with
- *   `<SafeAreaProvider>` and `<SafeAreaListener>` from `react-native-safe-area-context`, which causes a
- *   noticeable 1-frame async layout jump on startup. `syncWithUniwind` feeds JSI insets synchronously at Frame 0 (0ms).
- * - **Zero Boilerplate**: Call it once in `App.tsx` (before or inside root). All Tailwind safe area classes
- *   work out of the box without any React wrapper components:
- *   - Padding: `pt-safe`, `pb-safe`, `pl-safe`, `pr-safe`, `px-safe`, `p-safe`
- *   - Compound: `pt-safe-offset-10`, `px-safe-offset-5`, `pt-safe-or-4`
- *   - Margins & Insets: `mt-safe`, `inset-safe`, `top-safe`
- * - **iPadOS 18 Adaptive Navigation**: In Leftside Sidebar mode, `contentInsets.left` (320pt) automatically
- *   pushes content out via `px-safe` / `pl-safe`. In Top Capsule mode, `contentInsets.top` (88pt) pads list headers.
- * - **Smart Deduplication**: Only notifies Uniwind if insets actually change, avoiding redundant CSS variable recompilations.
+ * **Performance (0ms latency, zero layout shift)**:
+ * Reads initial insets synchronously via JSI at Frame 0 and applies them to Uniwind before any component renders.
+ * Also subscribes to native change notifications to handle device rotation and dynamic iPad sidebar toggles.
  *
  * @param uniwind The `Uniwind` instance imported from `'uniwind'`.
- * @param options Optional configuration. Set `useWindowInsets: true` to sync raw physical window insets instead of content insets.
- * @returns An unsubscribe function to tear down the listener when no longer needed.
+ * @param options Optional configuration for insets synchronization and adaptive navigation pre-seeding.
+ * @returns An unregister function to remove the safe area change listener.
  *
  * @example
  * ```tsx
- * // App.tsx
  * import { Uniwind } from 'uniwind';
  * import { syncWithUniwind } from '@2security/nitro-safe-area';
  *
- * // ⚡ Synchronize Frame 0 insets directly into Uniwind runtime
+ * // ⚡ Synchronize Frame 0 insets directly into Uniwind runtime (0ms latency, zero layout shift)
  * syncWithUniwind(Uniwind);
  *
  * export default function App() {
  *   return (
  *     // Use Tailwind safe area classes anywhere with ZERO wrappers!
- *     <View className="flex-1 pt-safe-offset-10 px-safe-offset-5 pb-safe">
+ *     <View className="flex-1 pt-safe-offset-2 px-safe-offset-5 pb-safe">
  *       <Text className="text-xl font-bold">Hello Tailwind v4!</Text>
  *     </View>
  *   );
  * }
  * ```
  */
+/**
+ * Explicitly configures whether iPadOS 18 adaptive navigation (sidebar / top capsule) pre-seeding
+ * is enabled at the native JSI layer during cold startup before React Navigation mounts.
+ *
+ * @param enabled Set to `true` if your app uses iPadOS 18 native tab / sidebar navigation.
+ */
+export function setAdaptiveNavigationEnabled(enabled: boolean): void {
+  NitroSafeArea.setAdaptiveNavigationEnabled(enabled);
+}
+
 export function syncWithUniwind(
   uniwind: UniwindLike,
-  options?: { useWindowInsets?: boolean }
+  options?: SyncWithUniwindOptions
 ): () => void {
+  const enableAdaptive = options?.adaptiveNavigation ?? false;
+  if (enableAdaptive) {
+    NitroSafeArea.setAdaptiveNavigationEnabled(true);
+  }
+
   const getInsets = () =>
     options?.useWindowInsets ? getWindowInsets() : getContentInsets();
 
@@ -413,7 +503,7 @@ export function syncWithUniwind(
  * at the top-level module scope of `App.tsx`.
  *
  * @param uniwind The `Uniwind` instance imported from `'uniwind'`.
- * @param options Optional configuration. Set `useWindowInsets: true` to sync raw physical window insets.
+ * @param options Optional configuration for insets synchronization and adaptive navigation pre-seeding.
  *
  * @example
  * ```tsx
@@ -429,12 +519,14 @@ export function syncWithUniwind(
  */
 export function useUniwindSafeArea(
   uniwind: UniwindLike,
-  options?: { useWindowInsets?: boolean }
+  options?: SyncWithUniwindOptions
 ): void {
   const shouldSyncWindowInsets = options?.useWindowInsets;
+  const adaptiveNavigation = options?.adaptiveNavigation;
   useEffect(() => {
     return syncWithUniwind(uniwind, {
       useWindowInsets: shouldSyncWindowInsets,
+      adaptiveNavigation,
     });
-  }, [uniwind, shouldSyncWindowInsets]);
+  }, [uniwind, shouldSyncWindowInsets, adaptiveNavigation]);
 }

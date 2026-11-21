@@ -13,6 +13,7 @@ public class HybridNitroSafeArea: HybridNitroSafeAreaSpec {
   private weak var observedWindow: UIWindow?
   private weak var observedTabBar: UITabBar?
   private weak var observedTabBarController: UITabBarController?
+  private var isAdaptiveNavigationEnabled: Bool = false
 
   public override init() {
     super.init()
@@ -67,6 +68,22 @@ public class HybridNitroSafeArea: HybridNitroSafeAreaSpec {
     }
   }
 
+  public func setAdaptiveNavigationEnabled(enabled: Bool) throws {
+    lock.lock()
+    let changed = isAdaptiveNavigationEnabled != enabled
+    isAdaptiveNavigationEnabled = enabled
+    lock.unlock()
+    if changed {
+      if Thread.isMainThread {
+        notifyListeners(debounce: false)
+      } else {
+        DispatchQueue.main.async { [weak self] in
+          self?.notifyListeners(debounce: false)
+        }
+      }
+    }
+  }
+
   // MARK: - Metrics Calculation
 
   private func calculateMetrics() -> SafeAreaMetrics {
@@ -89,16 +106,36 @@ public class HybridNitroSafeArea: HybridNitroSafeAreaSpec {
       }
       let isLandscape = screenBounds.width > screenBounds.height
       let orientation: DeviceOrientation = isLandscape ? .landscape : .portrait
-      let empty = EdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
+      var initialContentInsets = EdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
+      var fallbackMode: NavigationMode = .none
+      var fallbackSidebarWidth: Double = 0.0
+      var fallbackTopCapsuleHeight: Double = 0.0
+
+      if isAdaptiveNavigationEnabled && UIDevice.current.userInterfaceIdiom == .pad {
+        if #available(iOS 18.0, *) {
+          if orientation == .landscape {
+            fallbackMode = .ipadLeftSidebar
+            fallbackSidebarWidth = 320.0
+            initialContentInsets = EdgeInsets(top: 0, left: 320.0, bottom: 0, right: 0)
+          } else {
+            fallbackMode = .ipadTopCapsule
+            fallbackTopCapsuleHeight = 88.0
+            initialContentInsets = EdgeInsets(top: 88.0, left: 0, bottom: 0, right: 0)
+          }
+        }
+      }
+
+      let initialFrame = Rect(x: 0, y: 0, width: Double(screenBounds.width), height: Double(screenBounds.height))
       return SafeAreaMetrics(
-        insets: empty,
-        contentInsets: empty,
-        mode: .none,
+        insets: EdgeInsets(top: 0, left: 0, bottom: 0, right: 0),
+        contentInsets: initialContentInsets,
+        mode: fallbackMode,
         tabBarHeight: 0,
-        topCapsuleHeight: 0,
-        sidebarWidth: 0,
+        topCapsuleHeight: fallbackTopCapsuleHeight,
+        sidebarWidth: fallbackSidebarWidth,
         isTabBarHidden: false,
-        orientation: orientation
+        orientation: orientation,
+        frame: initialFrame
       )
     }
 
@@ -129,12 +166,23 @@ public class HybridNitroSafeArea: HybridNitroSafeAreaSpec {
     var contentRight = Double(windowInsets.right)
 
     if let tabVC = tabBarController {
-      let tabBar = tabVC.tabBar
-      isTabBarHidden = tabBar.isHidden || tabBar.alpha <= 0.01
+      let isModalPresentedOverTabs: Bool = {
+        guard let top = topVC else { return false }
+        var current: UIViewController? = top
+        while let c = current {
+          if c === tabVC { return false }
+          current = c.parent
+        }
+        return top.presentingViewController != nil || rootVC?.presentedViewController != nil
+      }()
 
-      if observedTabBarController !== tabVC {
-        attachTabBarControllerKVO(tabVC: tabVC)
-      }
+      if !isModalPresentedOverTabs {
+        let tabBar = tabVC.tabBar
+        isTabBarHidden = tabBar.isHidden || tabBar.alpha <= 0.01
+
+        if observedTabBarController !== tabVC {
+          attachTabBarControllerKVO(tabVC: tabVC)
+        }
 
       if !isPad {
         // iPhone: Bottom Tab Bar
@@ -209,6 +257,22 @@ public class HybridNitroSafeArea: HybridNitroSafeAreaSpec {
           }
         }
       }
+      }
+    }
+
+    if mode == .none && isAdaptiveNavigationEnabled && isPad && tabBarController == nil {
+      if #available(iOS 18.0, *) {
+        if orientation == .landscape {
+          mode = .ipadLeftSidebar
+          sidebarWidth = 320.0
+          contentLeft = max(contentLeft, sidebarWidth)
+          contentTop = Double(windowInsets.top)
+        } else {
+          mode = .ipadTopCapsule
+          topCapsuleHeight = Double(windowInsets.top) + 64.0
+          contentTop = max(contentTop, topCapsuleHeight)
+        }
+      }
     }
 
     // Cross-check with topVC.view.safeAreaInsets if available
@@ -238,6 +302,13 @@ public class HybridNitroSafeArea: HybridNitroSafeAreaSpec {
       right: contentRight
     )
 
+    let finalFrame = Rect(
+      x: 0,
+      y: 0,
+      width: Double(screenBounds.width),
+      height: Double(screenBounds.height)
+    )
+
     return SafeAreaMetrics(
       insets: finalInsets,
       contentInsets: finalContentInsets,
@@ -246,7 +317,8 @@ public class HybridNitroSafeArea: HybridNitroSafeAreaSpec {
       topCapsuleHeight: topCapsuleHeight,
       sidebarWidth: sidebarWidth,
       isTabBarHidden: isTabBarHidden,
-      orientation: orientation
+      orientation: orientation,
+      frame: finalFrame
     )
   }
 

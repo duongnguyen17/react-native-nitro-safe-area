@@ -15,13 +15,13 @@ export const ProfileScreen = () => {
     <View className="flex-1 bg-white">
       {/* 
         ⚡ Powered by @2security/nitro-safe-area + Uniwind:
-        - pt-safe-offset-10: Insets + 10pt offset for header breathing room.
+        - pt-safe-offset-2: Insets + 8pt offset for clean header breathing room below navigation bar/capsule.
         - px-safe-offset-5: Adapts to iPad Leftside Sidebar (320pt + 20pt) or standard margins (20pt).
         - pb-safe-offset-5: Insets + 20pt for bottom home bar or iPhone tab bar.
       */}
       <ScrollView
         className="flex-1"
-        contentContainerClassName="pt-safe-offset-10 pb-safe-offset-5 px-safe-offset-5"
+        contentContainerClassName="pt-safe-offset-2 pb-safe-offset-5 px-safe-offset-5"
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}

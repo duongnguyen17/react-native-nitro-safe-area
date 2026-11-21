@@ -36,6 +36,7 @@ class HybridNitroSafeArea : HybridNitroSafeAreaSpec() {
   private val mainHandler = Handler(Looper.getMainLooper())
   private var pendingNotifyRunnable: Runnable? = null
   private val lock = Any()
+  @Volatile private var isAdaptiveNavigationEnabled: Boolean = false
 
   init {
     synchronized(lock) {
@@ -65,6 +66,10 @@ class HybridNitroSafeArea : HybridNitroSafeAreaSpec() {
     return {
       listeners.remove(id)
     }
+  }
+
+  override fun setAdaptiveNavigationEnabled(enabled: Boolean) {
+    isAdaptiveNavigationEnabled = enabled
   }
 
   internal fun ensureInitialized() {
@@ -165,34 +170,42 @@ class HybridNitroSafeArea : HybridNitroSafeAreaSpec() {
   }
 
   private fun cleanupListeners() {
-    // 1. Remove DecorView layout and pre-draw listeners
-    attachedDecorView?.let { oldView ->
-      if (oldView.viewTreeObserver.isAlive) {
-        layoutListener?.let { oldListener ->
-          oldView.viewTreeObserver.removeOnGlobalLayoutListener(oldListener)
-        }
-        preDrawListener?.let { oldPreDraw ->
-          oldView.viewTreeObserver.removeOnPreDrawListener(oldPreDraw)
+    val runCleanup = Runnable {
+      // 1. Remove DecorView layout and pre-draw listeners
+      attachedDecorView?.let { oldView ->
+        if (oldView.viewTreeObserver.isAlive) {
+          layoutListener?.let { oldListener ->
+            oldView.viewTreeObserver.removeOnGlobalLayoutListener(oldListener)
+          }
+          preDrawListener?.let { oldPreDraw ->
+            oldView.viewTreeObserver.removeOnPreDrawListener(oldPreDraw)
+          }
         }
       }
-    }
-    attachedDecorView = null
-    layoutListener = null
-    preDrawListener = null
-    lastObservedInsets = null
-    lastBottomNavOffscreen = null
+      attachedDecorView = null
+      layoutListener = null
+      preDrawListener = null
+      lastObservedInsets = null
+      lastBottomNavOffscreen = null
 
-    // 2. Unregister ComponentCallbacks2 from registered activity
-    registeredActivity?.get()?.let { act ->
-      componentCallbacks?.let { callbacks ->
-        try {
-          act.unregisterComponentCallbacks(callbacks)
-        } catch (_: Throwable) {}
+      // 2. Unregister ComponentCallbacks2 from registered activity
+      registeredActivity?.get()?.let { act ->
+        componentCallbacks?.let { callbacks ->
+          try {
+            act.unregisterComponentCallbacks(callbacks)
+          } catch (_: Throwable) {}
+        }
       }
+      registeredActivity = null
+      componentCallbacks = null
+      cachedBottomNavRef = null
     }
-    registeredActivity = null
-    componentCallbacks = null
-    cachedBottomNavRef = null
+
+    if (Looper.myLooper() == Looper.getMainLooper()) {
+      runCleanup.run()
+    } else {
+      mainHandler.post(runCleanup)
+    }
   }
 
   fun cleanup() {
@@ -216,12 +229,23 @@ class HybridNitroSafeArea : HybridNitroSafeAreaSpec() {
            full.endsWith(".NavigationBarView")
   }
 
+  private fun isBottomNav(view: View): Boolean {
+    var currentClass: Class<*>? = view.javaClass
+    while (currentClass != null && currentClass != Any::class.java) {
+      if (isBottomNavClass(currentClass)) {
+        return true
+      }
+      currentClass = currentClass.superclass
+    }
+    return false
+  }
+
   private fun findBottomNavigationView(view: View?): View? {
     if (view == null) return null
 
     // Fast path: reuse cached instance if still attached to window
     cachedBottomNavRef?.get()?.let { cached ->
-      if (cached.isAttachedToWindow && isBottomNavClass(cached.javaClass)) {
+      if (cached.isAttachedToWindow && isBottomNav(cached)) {
         return cached
       }
     }
@@ -235,12 +259,8 @@ class HybridNitroSafeArea : HybridNitroSafeAreaSpec() {
 
   private fun searchBottomNavDFS(view: View?): View? {
     if (view == null) return null
-    var currentClass: Class<*>? = view.javaClass
-    while (currentClass != null && currentClass != Any::class.java) {
-      if (isBottomNavClass(currentClass)) {
-        return view
-      }
-      currentClass = currentClass.superclass
+    if (isBottomNav(view)) {
+      return view
     }
     if (view is ViewGroup) {
       for (i in 0 until view.childCount) {
@@ -346,6 +366,12 @@ class HybridNitroSafeArea : HybridNitroSafeAreaSpec() {
 
     val insets = EdgeInsets(top = topDp, left = leftDp, bottom = bottomDp, right = rightDp)
     val contentInsets = EdgeInsets(top = topDp, left = leftDp, bottom = contentBottomDp, right = rightDp)
+    val dm = decorView?.resources?.displayMetrics
+      ?: context?.resources?.displayMetrics
+      ?: Resources.getSystem().displayMetrics
+    val widthDp = (dm.widthPixels / density).toDouble()
+    val heightDp = (dm.heightPixels / density).toDouble()
+    val frame = Rect(0.0, 0.0, widthDp, heightDp)
 
     return SafeAreaMetrics(
       insets = insets,
@@ -355,7 +381,8 @@ class HybridNitroSafeArea : HybridNitroSafeAreaSpec() {
       topCapsuleHeight = 0.0,
       sidebarWidth = 0.0,
       isTabBarHidden = isTabBarHidden,
-      orientation = orientation
+      orientation = orientation,
+      frame = frame
     )
   }
 

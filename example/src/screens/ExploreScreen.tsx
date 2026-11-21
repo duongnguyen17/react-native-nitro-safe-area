@@ -7,7 +7,11 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import Animated, { LinearTransition } from 'react-native-reanimated';
+import Animated, {
+  FadeInUp,
+  FadeOutUp,
+  LinearTransition,
+} from 'react-native-reanimated';
 import { useRenderCount } from '../hooks/useRenderCount';
 
 const transition = LinearTransition.duration(300);
@@ -40,13 +44,13 @@ export const ExploreScreen = () => {
     <View className="flex-1 bg-white">
       {/* 
         ⚡ Powered by @2security/nitro-safe-area + Uniwind:
-        - pt-safe-offset-10: Insets + 10pt offset for header breathing room.
+        - pt-safe-offset-2: Insets + 8pt offset for clean header breathing room below navigation bar/capsule.
         - px-safe-offset-5: Adapts to iPad Leftside Sidebar (320pt + 20pt) or standard margins (20pt).
         - pb-safe-offset-5: Insets + 20pt for bottom home bar or iPhone tab bar.
       */}
       <ScrollView
         className="flex-1"
-        contentContainerClassName="pt-safe-offset-10 pb-safe-offset-5 px-safe-offset-5"
+        contentContainerClassName="pt-safe-offset-2 pb-safe-offset-5 px-safe-offset-5"
         showsVerticalScrollIndicator={false}
       >
         {/* Real-time Nitro Safe Area Inspector Card */}
@@ -154,6 +158,8 @@ export const ExploreScreen = () => {
             {expandedCard === 1 && (
               <Animated.View
                 layout={transition}
+                entering={FadeInUp}
+                exiting={FadeOutUp}
                 className="mt-3 pt-3 border-t border-slate-100"
               >
                 <Text className="text-slate-600 text-xs leading-5">
@@ -192,6 +198,8 @@ export const ExploreScreen = () => {
             {expandedCard === 2 && (
               <Animated.View
                 layout={transition}
+                entering={FadeInUp}
+                exiting={FadeOutUp}
                 className="mt-3 pt-3 border-t border-slate-100"
               >
                 <Text className="text-slate-600 text-xs leading-5">
@@ -229,6 +237,8 @@ export const ExploreScreen = () => {
             {expandedCard === 3 && (
               <Animated.View
                 layout={transition}
+                entering={FadeInUp}
+                exiting={FadeOutUp}
                 className="mt-3 pt-3 border-t border-slate-100"
               >
                 <Text className="text-slate-600 text-xs leading-5">
