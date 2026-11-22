@@ -140,9 +140,9 @@ export const ExploreScreen = () => {
         >
           <View className="flex-row items-center justify-between mb-2">
             <View className="flex-row items-center">
-              <Text className="text-xl mr-2">🚀</Text>
+              <Text className="text-xl mr-2">🧭</Text>
               <Text className="text-sky-950 font-bold text-sm">
-                Stack Screen Demo (No Tab Bar)
+                Native Navigation Demos
               </Text>
             </View>
             <View className="bg-sky-200 px-2 py-0.5 rounded-full">
@@ -152,24 +152,32 @@ export const ExploreScreen = () => {
             </View>
           </View>
           <Text className="text-sky-800 text-xs mb-3 leading-relaxed">
-            Navigate to a push screen with{' '}
-            <Text className="font-mono font-semibold">
-              headerTransparent: true
-            </Text>
-            . Demonstrates zero-layout-shift Uniwind{' '}
-            <Text className="font-mono font-bold">pt-header-offset-*</Text> and{' '}
-            <Text className="font-mono font-bold">h-header</Text> at Frame 0!
+            Test native stack push with zero-layout-shift transparent header, or
+            open a native FormSheet modal to test modal-immune safe area
+            isolation!
           </Text>
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => navigation.navigate('Details')}
-            className="bg-sky-600 active:bg-sky-700 py-2.5 px-4 rounded-xl items-center flex-row justify-center shadow-sm"
-          >
-            <Text className="text-white font-bold text-sm mr-1">
-              Open Transparent Header Demo
-            </Text>
-            <Text className="text-white font-bold text-sm">→</Text>
-          </TouchableOpacity>
+          <View className="gap-2">
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => navigation.navigate('Details')}
+              className="bg-sky-600 active:bg-sky-700 py-2.5 px-4 rounded-xl items-center flex-row justify-center shadow-sm"
+            >
+              <Text className="text-white font-bold text-sm mr-1">
+                Open Transparent Header Demo
+              </Text>
+              <Text className="text-white font-bold text-sm">→</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => navigation.navigate('FormSheet')}
+              className="bg-purple-600 active:bg-purple-700 py-2.5 px-4 rounded-xl items-center flex-row justify-center shadow-sm"
+            >
+              <Text className="text-white font-bold text-sm mr-1">
+                Open FormSheet Modal Demo
+              </Text>
+              <Text className="text-white font-bold text-sm">→</Text>
+            </TouchableOpacity>
+          </View>
         </Animated.View>
 
         {/* Feature Cards with Animated Layout */}

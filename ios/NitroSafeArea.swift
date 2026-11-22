@@ -190,7 +190,11 @@ public class HybridNitroSafeArea: HybridNitroSafeAreaSpec {
           if c === tabVC { return false }
           current = c.parent
         }
-        return top.presentingViewController != nil || rootVC?.presentedViewController != nil
+        guard let presented = top.presentedViewController ?? rootVC?.presentedViewController else {
+          return false
+        }
+        let isFullScreen = (presented.modalPresentationStyle == .fullScreen || presented.modalPresentationStyle == .overFullScreen)
+        return isFullScreen && !presented.isBeingDismissed
       }()
 
       if !isModalPresentedOverTabs {
@@ -230,7 +234,7 @@ public class HybridNitroSafeArea: HybridNitroSafeAreaSpec {
             } else if tabVC.sidebar.preferredLayout == .tile {
               isOverlapping = false
             } else {
-              if let contentView = tabVC.selectedViewController?.view ?? topVC?.view {
+              if let contentView = tabVC.selectedViewController?.view {
                 isOverlapping = contentView.frame.origin.x < 10.0
               } else {
                 isOverlapping = false
@@ -248,22 +252,21 @@ public class HybridNitroSafeArea: HybridNitroSafeAreaSpec {
               sidebarWidth = 0.0
             }
           } else if !isTabBarHidden {
-            // iPad Floating Top Capsule mode (collapsed sidebar or standard tab mode)
+            // iPadOS 18 Floating Top Capsule mode (collapsed sidebar or standard tab mode)
+            // In iPadOS 18, standard tab navigation is ALWAYS a floating top capsule!
+            mode = .ipadTopCapsule
+
             let tabFrame = tabBar.frame
+            let activeTabInsets = tabVC.selectedViewController?.view.safeAreaInsets
+
             if tabFrame.origin.y < screenBounds.height / 2 && tabFrame.height > 0 {
-              mode = .ipadTopCapsule
               topCapsuleHeight = Double(tabFrame.origin.y + tabFrame.height)
-              contentTop = max(Double(windowInsets.top), topCapsuleHeight)
-            } else if let viewInsets = topVC?.view.safeAreaInsets, viewInsets.top > windowInsets.top {
-              mode = .ipadTopCapsule
-              topCapsuleHeight = Double(viewInsets.top)
-              contentTop = topCapsuleHeight
+            } else if let activeTop = activeTabInsets?.top, activeTop > windowInsets.top {
+              topCapsuleHeight = Double(activeTop)
             } else {
-              // Standard bottom tab bar on iPad
-              mode = .iphoneBottomTab
-              tabBarHeight = Double(tabBar.frame.height)
-              contentBottom = max(Double(windowInsets.bottom), tabBarHeight)
+              topCapsuleHeight = Double(windowInsets.top) + 64.0
             }
+            contentTop = max(Double(windowInsets.top), topCapsuleHeight)
           }
         } else {
           // Pre-iOS 18 iPad
@@ -292,8 +295,9 @@ public class HybridNitroSafeArea: HybridNitroSafeAreaSpec {
       }
     }
 
-    // Cross-check with topVC.view.safeAreaInsets if available
-    if let viewInsets = topVC?.view.safeAreaInsets {
+    // Cross-check with target content view's safeAreaInsets if available
+    let targetViewForInsets = tabBarController?.selectedViewController?.view ?? topVC?.view
+    if let viewInsets = targetViewForInsets?.safeAreaInsets {
       if mode == .iphoneBottomTab && Double(viewInsets.bottom) > contentBottom {
         contentBottom = Double(viewInsets.bottom)
       }
@@ -345,20 +349,31 @@ public class HybridNitroSafeArea: HybridNitroSafeAreaSpec {
 
     var headerHeight: Double = intrinsicTopOffset + navBarHeight
 
-    if let nav = topVC?.navigationController ?? findNavigationController(from: rootVC) {
+    // 🛡️ CHỈ TÌM NAVIGATION CONTROLLER THUỘC BASE APP HIERARCHY
+    // Miễn nhiễm 100% trước Date Picker, Alert, FormSheet hay transient popups!
+    if let nav = findBaseNavigationController(from: rootVC) ?? topVC?.navigationController {
       let bar = nav.navigationBar
       let barHeight = Double(bar.frame.height)
       if barHeight > 0 {
         navBarHeight = barHeight
       }
 
-      // If navigation bar is active and laid out in window
-      if !nav.isNavigationBarHidden && !bar.isHidden && bar.alpha > 0.01 {
+      // Kiểm tra trạng thái hợp lệ của thanh Navigation Bar
+      if !nav.isNavigationBarHidden && !bar.isHidden && bar.alpha > 0.01 && !nav.isBeingPresented && !nav.isBeingDismissed {
         let barInWindow = bar.convert(bar.bounds, to: window)
-        if barInWindow.maxY > 0 {
+
+        // 🛡️ BỘ LỌC 3 TIÊU CHUẨN NGHIÊM NGẶT CHO TOP HEADER:
+        // 1. Phải có chiều cao > 0.
+        // 2. Phải trải rộng toàn màn hình (loại bỏ iPad FormSheet/Popover có width ~540pt).
+        // 3. Phải neo ở đỉnh màn hình (loại bỏ modal đang trượt từ dưới lên với minY > 100pt).
+        let isFullWidth = barInWindow.width >= (screenBounds.width - 25.0)
+        let maxAllowedTop = max(Double(windowInsets.top), 24.0) + 15.0
+        let isAnchoredAtTop = barInWindow.minY <= maxAllowedTop
+
+        if barInWindow.maxY > 0 && isFullWidth && isAnchoredAtTop {
           headerHeight = Double(barInWindow.maxY)
         }
-      } else if let topView = topVC?.view, topView.safeAreaInsets.top > 0 {
+      } else if let topView = getBaseTopViewController(from: rootVC)?.view, topView.safeAreaInsets.top > 0 {
         let vcTopInset = Double(topView.safeAreaInsets.top)
         if vcTopInset >= navBarHeight {
           headerHeight = vcTopInset
@@ -546,23 +561,88 @@ public class HybridNitroSafeArea: HybridNitroSafeAreaSpec {
     return UIApplication.shared.keyWindow
   }
 
-  private func getTopViewController(from root: UIViewController?) -> UIViewController? {
+  // MARK: - Base View Hierarchy Helpers (Immune to Presented Modals)
+
+  /// Tìm NavigationController cốt lõi của ứng dụng (Base Stack), không bị đánh lừa bởi DatePicker hay FormSheet.
+  private func findBaseNavigationController(from root: UIViewController?) -> UINavigationController? {
     guard let root = root else { return nil }
-    if let presented = root.presentedViewController {
-      return getTopViewController(from: presented)
+
+    // 1. Nếu root là UITabBarController (Tab chính của App)
+    if let tab = root as? UITabBarController {
+      if let selected = tab.selectedViewController {
+        if let nav = findBaseNavigationController(from: selected) {
+          return nav
+        }
+      }
+      for child in tab.viewControllers ?? [] {
+        if let nav = findBaseNavigationController(from: child) {
+          return nav
+        }
+      }
+    }
+
+    // 2. Nếu root là UINavigationController
+    if let nav = root as? UINavigationController {
+      if let top = nav.topViewController {
+        if let nestedNav = findBaseNavigationController(from: top) {
+          return nestedNav
+        }
+      }
+      return nav
+    }
+
+    // 3. Duyệt các view controller con trực tiếp trong container
+    // 🛡️ TUYỆT ĐỐI KHÔNG duyệt root.presentedViewController!
+    for child in root.children {
+      if let nav = findBaseNavigationController(from: child) {
+        return nav
+      }
+    }
+
+    // 4. Chỉ xem xét presentedViewController NẾU VÀ CHỈ NẾU nó là Fullscreen Modal chiếm trọn 100% Window
+    // (Bỏ qua hoàn toàn formSheet, pageSheet, popover, custom dialogs)
+    if let presented = root.presentedViewController,
+       (presented.modalPresentationStyle == .fullScreen || presented.modalPresentationStyle == .overFullScreen),
+       !presented.isBeingPresented, !presented.isBeingDismissed {
+      if let nav = findBaseNavigationController(from: presented) {
+        return nav
+      }
+    }
+
+    return nil
+  }
+
+  /// Tìm ViewController đang hiển thị của Base App Hierarchy, bỏ qua transient popups.
+  private func getBaseTopViewController(from root: UIViewController?) -> UIViewController? {
+    guard let root = root else { return nil }
+
+    // Nếu có Fullscreen Modal thực sự thay thế toàn màn hình
+    if let presented = root.presentedViewController,
+       (presented.modalPresentationStyle == .fullScreen || presented.modalPresentationStyle == .overFullScreen),
+       !presented.isBeingPresented, !presented.isBeingDismissed {
+      return getBaseTopViewController(from: presented)
+    }
+
+    if let tab = root as? UITabBarController {
+      return getBaseTopViewController(from: tab.selectedViewController)
     }
     if let nav = root as? UINavigationController {
-      return getTopViewController(from: nav.visibleViewController ?? nav.topViewController)
-    }
-    if let tab = root as? UITabBarController {
-      return getTopViewController(from: tab.selectedViewController)
+      return getBaseTopViewController(from: nav.topViewController)
     }
     for child in root.children {
-      if let top = getTopViewController(from: child) {
+      if let top = getBaseTopViewController(from: child) {
         return top
       }
     }
     return root
+  }
+
+  private func findNavigationController(from root: UIViewController?) -> UINavigationController? {
+    return findBaseNavigationController(from: root)
+  }
+
+  private func getTopViewController(from root: UIViewController?) -> UIViewController? {
+    return getBaseTopViewController(from: root)
   }
 
   private func findTabBarController(from root: UIViewController?) -> UITabBarController? {
@@ -571,11 +651,13 @@ public class HybridNitroSafeArea: HybridNitroSafeAreaSpec {
       return tab
     }
     if let nav = root as? UINavigationController {
-      if let tab = findTabBarController(from: nav.visibleViewController ?? nav.topViewController) {
+      if let tab = findTabBarController(from: nav.topViewController) {
         return tab
       }
     }
-    if let presented = root.presentedViewController {
+    if let presented = root.presentedViewController,
+       (presented.modalPresentationStyle == .fullScreen || presented.modalPresentationStyle == .overFullScreen),
+       !presented.isBeingPresented, !presented.isBeingDismissed {
       if let tab = findTabBarController(from: presented) {
         return tab
       }
@@ -583,29 +665,6 @@ public class HybridNitroSafeArea: HybridNitroSafeAreaSpec {
     for child in root.children {
       if let tab = findTabBarController(from: child) {
         return tab
-      }
-    }
-    return nil
-  }
-
-  private func findNavigationController(from root: UIViewController?) -> UINavigationController? {
-    guard let root = root else { return nil }
-    if let nav = root as? UINavigationController {
-      return nav
-    }
-    if let presented = root.presentedViewController {
-      if let nav = findNavigationController(from: presented) {
-        return nav
-      }
-    }
-    if let tab = root as? UITabBarController {
-      if let nav = findNavigationController(from: tab.selectedViewController) {
-        return nav
-      }
-    }
-    for child in root.children {
-      if let nav = findNavigationController(from: child) {
-        return nav
       }
     }
     return nil

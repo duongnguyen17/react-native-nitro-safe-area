@@ -1,7 +1,9 @@
-import { View, Text, ScrollView } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaMetrics } from '@2security/nitro-safe-area';
 
 export function DetailScreen() {
+  const navigation = useNavigation<any>();
   const metrics = useSafeAreaMetrics();
 
   return (
@@ -162,6 +164,38 @@ export function DetailScreen() {
               </Text>
             </View>
           </View>
+        </View>
+
+        {/* Test FormSheet Modal Over Transparent Header */}
+        <View className="bg-purple-50 rounded-2xl p-4 mb-4 border border-purple-200 shadow-sm">
+          <View className="flex-row items-center justify-between mb-2">
+            <View className="flex-row items-center">
+              <Text className="text-lg mr-2">🛡️</Text>
+              <Text className="text-purple-950 font-bold text-sm">
+                Modal-Immune Defense Test
+              </Text>
+            </View>
+            <View className="bg-purple-200/70 px-2 py-0.5 rounded-md">
+              <Text className="text-purple-900 text-[10px] font-bold">
+                Zero Shift
+              </Text>
+            </View>
+          </View>
+          <Text className="text-purple-800 text-xs mb-3 leading-relaxed">
+            Open a native FormSheet modal over this screen. Notice that during
+            and after modal presentation, this screen's transparent header
+            height ({metrics.headerHeight.toFixed(0)}pt) stays 100% frozen!
+          </Text>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => navigation.navigate('FormSheet')}
+            className="bg-purple-600 active:bg-purple-700 py-2.5 px-4 rounded-xl items-center flex-row justify-center shadow-sm"
+          >
+            <Text className="text-white font-bold text-sm mr-1">
+              Open FormSheet Over Header
+            </Text>
+            <Text className="text-white font-bold text-sm">→</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Available Tailwind Classes Reference */}
