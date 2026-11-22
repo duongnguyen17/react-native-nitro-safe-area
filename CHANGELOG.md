@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] - 2026-11-22
+
+### 🛡️ Fixed & Hardened
+- **Modal-Immune Safe Area & Header Isolation (iOS & iPadOS)**:
+  - Implemented 4-layer modal defense engine in `ios/NitroSafeArea.swift` protecting against `presentation: 'formSheet'`, `pageSheet`, `popover`, date pickers, alerts, and custom modal dialogs.
+  - Isolated `findBaseNavigationController` and `getBaseTopViewController` to traverse only the core application hierarchy, ignoring presented view controllers unless they are full-screen modals.
+  - Added strict geometric validation filters (`isFullWidth` and `isAnchoredAtTop`) to reject floating and non-anchored modal navigation bars (e.g., iPad 540pt cards or iPhone sliding sheets).
+  - Added transition state guard (`!isBeingPresented && !isBeingDismissed`) preventing fluctuating header height metrics during modal animations.
+  - Fixed `isModalPresentedOverTabs` so non-fullscreen modal sheets do not falsely collapse native bottom tabs or iPad top capsule navigation insets.
+- **iPadOS 18 Adaptive Top Capsule Stability**:
+  - Replaced `nav.visibleViewController` with `nav.topViewController` across all hierarchy traversals so floating modals never hijack the TabBar Controller reference.
+  - Locked iPadOS 18 collapsed sidebar mode to `.ipadTopCapsule`, removing the legacy fallback that falsely classified the bottom-anchored UIKit tab bar frame as `.iphoneBottomTab`.
+  - Bound top capsule height directly to `tabVC.selectedViewController?.view.safeAreaInsets.top` with safe `windowInsets.top + 64.0pt` fallback, eliminating the 64pt background shift caused by modal view controllers reporting 0pt top safe area insets.
+
+### 🚀 Demo
+- Added native `FormSheet` demo screen (`FormSheetScreen.tsx`) in the example app to demonstrate safe area isolation under `presentation: 'formSheet'` with custom detents and live metric inspection.
+
 ## [0.1.1] - 2026-11-21
 
 ### 🚀 Added
